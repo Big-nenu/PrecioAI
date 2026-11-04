@@ -47,6 +47,7 @@ def main():
     parser = argparse.ArgumentParser(description="Buscar conceptos de ConstruBase")
     parser.add_argument("texto", help="Palabras a buscar en la descripción completa")
     parser.add_argument("--limite", type=int, default=10)
+    parser.add_argument("--ordenar", action="store_true", help="Priorizar coincidencias con reglas explicables")
     args = parser.parse_args()
     try:
         import pyodbc
@@ -65,6 +66,9 @@ def main():
     try:
         with pyodbc.connect(cadena, timeout=8) as conexion:
             datos = buscar(conexion, args.texto, args.limite)
+        if args.ordenar:
+            from ranking_conceptos import ordenar_candidatos
+            datos = ordenar_candidatos(args.texto, datos)
         print(json.dumps(datos, ensure_ascii=False, indent=2, default=str))
         return 0
     except (pyodbc.Error, ValueError) as exc:
