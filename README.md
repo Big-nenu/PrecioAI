@@ -115,3 +115,9 @@ El objetivo de esta prueba es demostrar que podemos **encontrar y recuperar el a
 ## Tecnologías
 
 **Por definir.** Se elegirán después de validar las necesidades reales del MVP.
+
+## Primer lector de presupuesto Excel
+
+Se agregó `leer_presupuesto.py` como prototipo de lectura **sin modificar el archivo original**. La primera prueba se hizo con `Propuesta pepe - original.xlsx` (hojas `Conceptos` y `Resumen`), cuyo formato tiene encabezados antes de la tabla, partidas y conceptos. El lector debe preservar clave, descripción, unidad, cantidad, fila de origen y partida. `test_leer_presupuesto.py` cubre casos básicos; faltan pruebas con formatos distintos y conectar la extracción a la búsqueda en ConstruBase. No subir presupuestos privados al repositorio.
+
+**Prioridad siguiente:** validar el lector con el Excel original y revisar los conceptos extraídos antes de agregar embeddings, caché o interfaz.
