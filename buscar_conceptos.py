@@ -3,6 +3,7 @@ import argparse
 import getpass
 import json
 import os
+import socket
 import sys
 
 
@@ -55,7 +56,7 @@ def main():
         print("Falta pyodbc. Instala con: python -m pip install pyodbc", file=sys.stderr)
         return 1
     cargar_env()
-    servidor = os.getenv("PRECIOAI_SQL_SERVER", r"LUIS-PC\PUWPS2022")
+    servidor = os.getenv("PRECIOAI_SQL_SERVER") or rf"{socket.gethostname()}\PUWPS2022"
     base = os.getenv("PRECIOAI_SQL_DATABASE", "CONSTRUBASE_OCTUBRE_2026")
     usuario = os.getenv("PRECIOAI_SQL_USER", "sa")
     clave = os.getenv("PRECIOAI_SQL_PASSWORD") or getpass.getpass("Contraseña de SQL Server: ")
