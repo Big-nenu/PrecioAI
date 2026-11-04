@@ -112,9 +112,28 @@ El objetivo de esta prueba es demostrar que podemos **encontrar y recuperar el a
 - **Uso responsable de datos:** verificar licencias y permisos antes de utilizar bases de terceros comercialmente; no subir bases de datos, credenciales ni archivos privados al repositorio.
 - **Simplicidad:** evitar agentes, dependencias e infraestructura innecesaria antes de validar el flujo principal.
 
+## Requisitos e instalación (Windows)
+
+- Python 3.10 o superior recomendado (versión mínima aún no validada en todas las instalaciones).
+- Para leer Excel: `openpyxl`.
+- Para consultar ConstruBase: `pyodbc`, **SQL Server** accesible y **Microsoft ODBC Driver 18 for SQL Server** instalado en Windows. No hace falta SQL Server para probar únicamente el lector de Excel.
+- Las dependencias Python están declaradas en `requirements.txt`.
+
+Desde la carpeta del repositorio:
+
+```powershell
+python -m pip install -r requirements.txt
+python -m unittest discover -p "test_*.py" -v
+python leer_presupuesto.py "datos_privados/Propuesta pepe - original.xlsx" --salida resultado.json
+```
+
+Guarda los Excel privados en `datos_privados/` (ignorada por Git). Para búsquedas SQL configura un `.env` local con `PRECIOAI_SQL_SERVER`, `PRECIOAI_SQL_DATABASE`, `PRECIOAI_SQL_USER`, `PRECIOAI_SQL_PASSWORD` y, si corresponde, `PRECIOAI_SQL_DRIVER`. Nunca publiques credenciales ni presupuestos privados.
+
+**Estado:** estas instrucciones describen las dependencias directas actuales; la instalación limpia en otra computadora sigue pendiente de validar.
+
 ## Tecnologías
 
-**Por definir.** Se elegirán después de validar las necesidades reales del MVP.
+Python, `openpyxl` (Excel), `pyodbc` (SQL Server). Embeddings, SQLite y StoneWave-mini siguen siendo opciones futuras, no dependencias actuales.
 
 ## Primer lector de presupuesto Excel
 
