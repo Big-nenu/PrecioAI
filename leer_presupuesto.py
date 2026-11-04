@@ -42,17 +42,15 @@ def extraer_filas(filas):
 
 
 def leer(ruta):
-    from artifact_tool import Blob, SpreadsheetFile
-    libro = SpreadsheetFile.import_xlsx(Blob.load(str(ruta)))
-    hoja = libro.worksheets.get_item('Conceptos')
-    filas = []
-    for inicio in range(0, 20000, 500):
-        bloque = hoja.get_range_by_indexes(inicio, 0, 500, 5).values
-        filas.extend(bloque)
-        if len(filas) >= 500 and all(not any(v is not None and str(v).strip() for v in fila) for fila in filas[-100:]):
-            break
-    return extraer_filas(filas)
-
+    from openpyxl import load_workbook
+    libro = load_workbook(ruta, read_only=True, data_only=True)
+    try:
+        if 'Conceptos' not in libro.sheetnames:
+            raise ValueError("El archivo no contiene una hoja llamada 'Conceptos'")
+        hoja = libro['Conceptos']
+        return extraer_filas(hoja.iter_rows(min_col=1, max_col=5, values_only=True))
+    finally:
+        libro.close()
 
 def main():
     p = argparse.ArgumentParser(description='Extraer conceptos y partidas de Excel, sin modificarlo')
