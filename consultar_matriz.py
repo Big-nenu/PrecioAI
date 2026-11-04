@@ -51,11 +51,36 @@ def obtener_renglones(conexion, id_expins, profundidad=0, visitados=None):
             "nota": "Cantidades originales; no se calculan precios. Subanálisis limitados a la profundidad solicitada."}
 
 
+def diagnosticar_costos(conexion, id_expins):
+    """Muestra cuántos registros de costo tiene cada insumo, sin elegir uno."""
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT m.Renglon, c.Codigo, m.IdCodigoInsumo,
+               COUNT(ec.IdExpIns) AS RegistrosCosto,
+               MIN(ec.Costo) AS CostoMinimo,
+               MAX(ec.Costo) AS CostoMaximo
+        FROM dbo.PuMatrices AS m
+        JOIN dbo.PuExpIns AS e ON e.IdExpIns = m.IdCodigoInsumo
+        JOIN dbo.PuCatalogo AS c ON c.IdCodigo = e.IdCodigo
+        LEFT JOIN dbo.PuExpInsCostos AS ec ON ec.IdExpIns = e.IdExpIns
+        WHERE m.IdCodigoMatriz = ?
+        GROUP BY m.IdMatriz, m.Renglon, c.Codigo, m.IdCodigoInsumo
+        ORDER BY m.Renglon, m.IdMatriz
+    """, id_expins)
+    return [
+        {"Renglon": r[0], "Codigo": r[1], "IdExpIns": r[2],
+         "RegistrosCosto": r[3], "CostoMinimo": r[4], "CostoMaximo": r[5]}
+        for r in cursor.fetchall()
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Consultar renglones de una matriz")
     parser.add_argument("id_expins", type=int, help="IdExpIns de la matriz, no IdCodigo")
     parser.add_argument("--profundidad", type=int, default=0, choices=range(4),
                         help="Niveles de subanálisis a consultar (0-3)")
+    parser.add_argument("--diagnosticar-costos", action="store_true",
+                        help="Contar registros de costo por insumo sin calcular importes")
     args = parser.parse_args()
     cargar_env()
     try:
@@ -71,7 +96,9 @@ def main():
               "Encrypt=yes;TrustServerCertificate=yes;ApplicationIntent=ReadOnly;")
     try:
         with pyodbc.connect(cadena, timeout=8) as conexion:
-            resultado = obtener_renglones(conexion, args.id_expins, args.profundidad)
+            resultado = (diagnosticar_costos(conexion, args.id_expins)
+                         if args.diagnosticar_costos else
+                         obtener_renglones(conexion, args.id_expins, args.profundidad))
         print(json.dumps(resultado, ensure_ascii=False, indent=2, default=str))
         return 0
     except (pyodbc.Error, ValueError) as error:
