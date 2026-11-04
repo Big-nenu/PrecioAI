@@ -2,7 +2,7 @@
 
 Plataforma en desarrollo para facilitar la elaboración de presupuestos de obra y análisis de precios unitarios, combinando búsqueda de matrices, datos estructurados e inteligencia artificial cuando aporte valor.
 
-> **Estado:** definición funcional y exploración técnica. Las funciones descritas son objetivos del proyecto, no características ya implementadas.
+> **Estado (2026-11-04):** búsqueda y recuperación de matrices/subanálisis probadas contra ConstruBase. El flujo completo Excel/PDF → coincidencias → selección → Excel sigue pendiente. Distinguir funcionalidades probadas de propuestas.
 
 ## Visión
 
@@ -16,8 +16,8 @@ La inteligencia artificial se utilizará principalmente para **interpretar conce
 2. El sistema extrae los **conceptos, descripciones, unidades y cantidades**, conservando la relación con el documento de origen.
 3. Identifica características relevantes de cada descripción: por ejemplo, *manual*, *con equipo topográfico*, *hasta 1,000 m²*, *mayor a 1,000 m²*, *incluye elaboración de plano*, etc.
 4. Busca en **ConstruBase** conceptos y matrices compatibles. No basta con encontrar las mismas palabras: deben considerarse el trabajo principal, las condiciones y la unidad.
-5. Muestra **varias opciones** para que el usuario compare y elija. También debe existir una opción de **captura manual**.
-6. Al elegir una matriz, recupera su análisis y los subanálisis necesarios para que el usuario pueda revisarlos y modificarlos.
+5. Muestra **hasta cinco coincidencias compatibles** por concepto, ordenadas por relevancia. «Buscar más» trae hasta cinco nuevas, sin repetir; si solo hay dos válidas, muestra dos. Si no hay ninguna, informa «Sin coincidencias» y conserva el concepto original. No inventar opciones.
+6. El usuario selecciona una matriz y decide **conservar su descripción original** o **usar la descripción de ConstruBase**. Recupera su análisis y los subanálisis necesarios para revisión.
 7. Las modificaciones se guardan **dentro del presupuesto del usuario**, sin alterar ConstruBase.
 
 **Ejemplo:** al importar «Trazo y nivelación con equipo topográfico, hasta 1,000 m²», una búsqueda de texto puede devolver trazo manual, trazo topográfico general, trazo con plano, trabajos para tuberías e incluso otros conceptos que solo mencionan «trazo y nivelación». PrecioAI debe distinguir estos casos y presentar primero las coincidencias técnicamente más pertinentes.
@@ -67,6 +67,28 @@ Cuando no exista una matriz adecuada, explorar la posibilidad de que PrecioAI ay
 ### Precios de referencia
 
 Evaluar posteriormente la consulta de precios por ubicación geográfica, mostrando **fuente, fecha y ubicación**. La recopilación automatizada de precios externos se abordará después de validar la búsqueda y recuperación de matrices.
+
+## Decisiones funcionales y prioridades (2026-11-04)
+
+**Objetivo principal:** importar el presupuesto de un ingeniero (Excel o PDF), interpretar sus partidas y conceptos, buscar análisis similares en ConstruBase, permitir seleccionar coincidencias y generar un **Excel de presupuesto con análisis**. La interfaz gráfica queda para después; el Excel puede servir como primera salida revisable. No crear una hoja por concepto: organizar presupuesto, alternativas y análisis en hojas consolidadas (diseño sujeto a prueba con archivos reales). Conservar partidas, unidades, cantidades y descripciones originales salvo elección explícita del usuario.
+
+**Reglas de coincidencia:** identificar palabras clave y atributos técnicos (unidad, resistencia, dimensiones, método, condiciones). Ranking con puntuación y penalizaciones, sin confundir similitud textual con equivalencia técnica. Hasta 5 resultados por lote, «Buscar más» sin repetidos, sin completar artificialmente el cupo. El usuario siempre confirma la opción. Un concepto sin coincidencia se señala y permanece en el presupuesto, sin inventar análisis.
+
+**Ideas futuras, NO parte del MVP:**
+- **Embeddings/RAG local:** indexar descripciones del catálogo una vez y recuperar candidatos sin enviar todo ConstruBase al modelo de lenguaje. Comparar primero contra el ranking existente; no implica integrar StoneWave completo.
+- **StoneWave-mini:** memoria/caché de selecciones confirmadas y conceptos usados con frecuencia, para proponerlos primero en futuras búsquedas. Guardar procedencia (IdCodigo, IdExpIns, IdPresupuesto, versión de base) y revalidar costos/datos actuales antes de usarlos; no sustituye la fuente de verdad SQL.
+- **Rapidpre:** posible fuente adicional para especialidades no cubiertas por ConstruBase (p. ej., albercas). Investigar antes exportación/acceso permitido por licencia; no asumir autorización para scraping ni depender de macros en el MVP.
+
+## Avance técnico comprobado
+
+- `buscar_conceptos.py`: búsqueda SQL de conceptos por descripción; `ranking_conceptos.py`: ordenamiento inicial de candidatos. **No** están todavía conectados al flujo de importación Excel/PDF ni implementan paginación de 5.
+- Relación **verificada**: `PuCatalogo.IdCodigo → PuExpIns.IdCodigo`; `PuExpIns.IdExpIns → PuMatrices.IdCodigoMatriz` (matriz) y `PuMatrices.IdCodigoInsumo → PuExpIns.IdExpIns` (insumo). Cada concepto puede existir en varios presupuestos.
+- `diagnosticar_matriz.py`: localiza instancias por presupuesto. Para `10301-003` se hallaron cuatro instancias (presupuestos 48–51), cada una con nueve renglones.
+- `consultar_matriz.py`: recupera renglones reales, `Dividir`, `Volumen` y subanálisis con profundidad limitada y protección de ciclos. **Probado**: matriz `860468` (trazo/nivelación, presupuesto 48) → básico `860902` (concreto `10401-291`), con ocho renglones.
+- **Costos:** Cline reportó que `PuExpInsCostos` contiene costos relacionados por `IdExpIns`; falta verificar cardinalidad y elegir registro correcto. Existe `--diagnosticar-costos`, pendiente de ejecutar y revisar.
+- `calculo_importes.py` y sus pruebas: operación decimal multiplicar/dividir con redondeo normal o hacia arriba. **No está validada** todavía la política real de Neodata ni el cálculo completo de porcentajes, costos horarios y subanálisis. No reconstruir rendimientos a partir de importes redondeados.
+
+**Próximo objetivo del MVP:** leer un Excel real sin modificar el original, distinguir partidas de conceptos y producir una lista revisable de coincidencias de ConstruBase. Después integrar selección humana y exportación. Los costos y redondeos no deben bloquear esta primera prueba.
 
 ## Primera validación técnica
 
