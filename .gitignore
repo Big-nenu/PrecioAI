@@ -3,3 +3,12 @@
 !.env.example
 __pycache__/
 *.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.mdf
+*.ldf
+resultado.json
+salidas/
+datos_privados/
