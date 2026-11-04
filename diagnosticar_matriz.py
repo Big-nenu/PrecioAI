@@ -34,8 +34,28 @@ def diagnosticar(conexion, codigo):
         relaciones["por_IdCodigo"] = cursor.fetchone()[0]
         # También se revisa si hay discrepancias de identificación; sin
         # adivinar relaciones alternativas que no estén verificadas.
+    cursor.execute("SELECT COUNT(*) FROM dbo.PuMatrices")
+    relaciones["total_renglones_matrices"] = cursor.fetchone()[0]
+    cursor.execute("""
+        SELECT TOP (5) m.IdCodigoMatriz, c.Codigo, c.Descripcion,
+               COUNT(*) AS Renglones
+        FROM dbo.PuMatrices AS m
+        LEFT JOIN dbo.PuCatalogo AS c ON c.IdCodigo = m.IdCodigoMatriz
+        GROUP BY m.IdCodigoMatriz, c.Codigo, c.Descripcion
+        ORDER BY COUNT(*) DESC
+    """)
+    relaciones["ejemplos_con_renglones"] = [
+        {"IdCodigoMatriz": fila[0], "Codigo": fila[1],
+         "Descripcion": fila[2], "Renglones": fila[3]}
+        for fila in cursor.fetchall()
+    ]
+    cursor.execute("""
+        SELECT COUNT(*) FROM dbo.PuMatrices AS m
+        INNER JOIN dbo.PuCatalogo AS c ON c.IdCodigo = m.IdCodigoMatriz
+    """)
+    relaciones["renglones_con_catalogo"] = cursor.fetchone()[0]
     return {"esquema": esquema, "concepto": concepto, "relaciones": relaciones,
-            "nota": "Diagnóstico solamente; no se han recuperado costos ni subanálisis."}
+            "nota": "Diagnóstico solamente; se muestran ejemplos de relaciones, no costos ni subanálisis."}
 
 
 def main():
