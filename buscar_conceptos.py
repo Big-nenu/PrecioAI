@@ -24,6 +24,25 @@ ORDER BY Codigo"""
     return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
 
+def cargar_env(ruta=".env"):
+    """Carga variables locales sin sobrescribir las del entorno."""
+    from pathlib import Path
+    archivo = Path(__file__).resolve().parent / ruta
+    if not archivo.is_file():
+        return
+    for linea in archivo.read_text(encoding="utf-8-sig").splitlines():
+        linea = linea.strip()
+        if not linea or linea.startswith("#") or "=" not in linea:
+            continue
+        clave, valor = linea.split("=", 1)
+        clave = clave.strip()
+        valor = valor.strip()
+        if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in ("\u0027", "\u0022"):
+            valor = valor[1:-1]
+        if clave.startswith("PRECIOAI_SQL_"):
+            os.environ.setdefault(clave, valor)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Buscar conceptos de ConstruBase")
     parser.add_argument("texto", help="Palabras a buscar en la descripción completa")
@@ -34,6 +53,7 @@ def main():
     except ImportError:
         print("Falta pyodbc. Instala con: python -m pip install pyodbc", file=sys.stderr)
         return 1
+    cargar_env()
     servidor = os.getenv("PRECIOAI_SQL_SERVER", r"LUIS-PC\PUWPS2022")
     base = os.getenv("PRECIOAI_SQL_DATABASE", "CONSTRUBASE_OCTUBRE_2026")
     usuario = os.getenv("PRECIOAI_SQL_USER", "sa")
