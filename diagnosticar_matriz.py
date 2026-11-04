@@ -11,7 +11,7 @@ def diagnosticar(conexion, codigo):
         SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = 'dbo'
-          AND TABLE_NAME IN ('PuCatalogo', 'PuMatrices')
+          AND TABLE_NAME IN ('PuCatalogo', 'PuExpIns', 'PuMatrices')
         ORDER BY TABLE_NAME, ORDINAL_POSITION
     """)
     esquema = {}
@@ -29,33 +29,19 @@ def diagnosticar(conexion, codigo):
     relaciones = {}
     if concepto:
         cursor.execute("""
-            SELECT COUNT(*) FROM dbo.PuMatrices WHERE IdCodigoMatriz = ?
+            SELECT e.IdExpIns, e.IdPresupuesto, COUNT(m.IdMatriz) AS Renglones
+            FROM dbo.PuExpIns AS e
+            LEFT JOIN dbo.PuMatrices AS m ON m.IdCodigoMatriz = e.IdExpIns
+            WHERE e.IdCodigo = ?
+            GROUP BY e.IdExpIns, e.IdPresupuesto
+            ORDER BY Renglones DESC, e.IdExpIns
         """, fila[0])
-        relaciones["por_IdCodigo"] = cursor.fetchone()[0]
-        # También se revisa si hay discrepancias de identificación; sin
-        # adivinar relaciones alternativas que no estén verificadas.
-    cursor.execute("SELECT COUNT(*) FROM dbo.PuMatrices")
-    relaciones["total_renglones_matrices"] = cursor.fetchone()[0]
-    cursor.execute("""
-        SELECT TOP (5) m.IdCodigoMatriz, c.Codigo, c.Descripcion,
-               COUNT(*) AS Renglones
-        FROM dbo.PuMatrices AS m
-        LEFT JOIN dbo.PuCatalogo AS c ON c.IdCodigo = m.IdCodigoMatriz
-        GROUP BY m.IdCodigoMatriz, c.Codigo, c.Descripcion
-        ORDER BY COUNT(*) DESC
-    """)
-    relaciones["ejemplos_con_renglones"] = [
-        {"IdCodigoMatriz": fila[0], "Codigo": fila[1],
-         "Descripcion": fila[2], "Renglones": fila[3]}
-        for fila in cursor.fetchall()
-    ]
-    cursor.execute("""
-        SELECT COUNT(*) FROM dbo.PuMatrices AS m
-        INNER JOIN dbo.PuCatalogo AS c ON c.IdCodigo = m.IdCodigoMatriz
-    """)
-    relaciones["renglones_con_catalogo"] = cursor.fetchone()[0]
+        relaciones["matrices_del_concepto"] = [
+            {"IdExpIns": r[0], "IdPresupuesto": r[1], "Renglones": r[2]}
+            for r in cursor.fetchall()
+        ]
     return {"esquema": esquema, "concepto": concepto, "relaciones": relaciones,
-            "nota": "Diagnóstico solamente; se muestran ejemplos de relaciones, no costos ni subanálisis."}
+            "nota": "Diagnóstico por relación verificada; no se recuperan costos ni subanálisis."}
 
 
 def main():
