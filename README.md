@@ -158,3 +158,25 @@ Para la nube, cambia `PRECIOAI_AI_PROVIDER=openai`, establece `PRECIOAI_AI_MODEL
 Prueba la conexión con `python proveedor_ia.py --probar` y ejecuta las pruebas con `python -m unittest discover -p "test_*.py" -v`.
 
 La skill inicial está en `skills/analizar-presupuesto/SKILL.md`. **Aún no está integrada con un agente que ejecute herramientas**; la lectura flexible de Excel/PDF y la orquestación están pendientes.
+
+## Códigos y descripciones auxiliares (decisión de diseño)
+
+Para aprovechar un análisis existente de ConstruBase sin duplicarlo por diferencias en la redacción del cliente, PrecioAI debe **separar los datos internos del análisis de los datos originales de la licitación**:
+
+- **Código:** clave interna del concepto o matriz seleccionada en ConstruBase.
+- **Código auxiliar:** clave original solicitada por el cliente o la dependencia (en PU Win+ admite hasta 20 caracteres).
+- **Descripción del concepto:** descripción propia del análisis de referencia.
+- **Descripción auxiliar:** descripción o especificaciones originales del concepto en el presupuesto del cliente.
+- **Unidad y cantidad:** datos del presupuesto importado, conservados para revisión.
+
+**Regla funcional:** al seleccionar una matriz compatible, mantener la referencia a su código y análisis internos y conservar por separado el código y la descripción originales del cliente. No crear un análisis nuevo solo para cambiar su código o redacción. Si la compatibilidad técnica no es suficiente, no reutilizar la matriz automáticamente: la selección sigue siendo del usuario. ConstruBase permanece sin modificaciones.
+
+El *Manual PUWIN+*, páginas 246 y 458, documenta los campos auxiliares y el formato de copiado desde Excel con estas seis columnas, en este orden:
+
+```text
+Partida | Código | Código auxiliar | Descripción auxiliar | Unidad | Cantidad
+```
+
+El manual indica que este formato permite utilizar códigos y descripciones del archivo maestro y de la dependencia sin perder los originales; al imprimir, puede elegirse el código auxiliar para presentar la propuesta con la información del cliente.
+
+**Aplicación prevista en PrecioAI:** producir una salida Excel compatible con este esquema, manteniendo trazabilidad entre concepto importado y análisis seleccionado. **Pendiente:** validar el formato y su importación con un ejemplo real; no está implementada todavía esta exportación.
