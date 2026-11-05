@@ -44,6 +44,28 @@ El Código auxiliar admite **hasta 20 caracteres** según el manual. El código 
 
 ## Arquitectura provisional
 
+### Incremento de etapa 1 para revisión
+
+`python mini_pai_interpretar.py entrada.xlsx --salida revision.json` reutiliza
+`proveedor_ia.py` y `skills/analizar-presupuesto/SKILL.md`. Inspecciona las hojas
+sin columnas fijas y solicita clasificación a la IA. Requiere configurar el
+proveedor como indica el README principal; el contenido del Excel se envía a ese
+proveedor. Usa únicamente archivos autorizados para ese destino.
+
+La salida conserva archivo, hoja, fila y evidencia por celda de clave,
+descripción, unidad y cantidad. Se exige transcripción exacta; las cantidades
+se conservan como texto, sin normalización. Las descripciones pueden abarcar
+varias celdas. Se rechazan valores que no coincidan con la evidencia.
+
+**Comprobado con pruebas sintéticas y proveedor simulado:** extracción de
+coordenadas sin columnas fijas, contrato de evidencia y rechazo de valores
+inventados. **Pendiente:** modelos reales, distintos presupuestos reales,
+fórmulas sin caché, celdas combinadas, libros grandes y revisión de jerarquías.
+La clasificación, las referencias textuales de partida/subpartida y la
+integridad de la extracción requieren revisión humana; validar evidencia no
+demuestra que el campo o concepto elegido sea correcto ni que no haya omisiones.
+Todavía no hay agente con llamadas autónomas a herramientas ni exportación.
+
 Se contempla una **skill** especializada (instrucciones para la IA) y herramientas concretas para inspeccionar Excel, consultar ConstruBase y generar el archivo de salida. La carpeta `references/` podría guardar reglas y documentación de Neodata; `scripts/` contendría funciones ejecutables. **Esta estructura aún es una propuesta, no está implementada.** Se busca mantener el sistema utilizable con distintos modelos de IA, sin depender de uno específico.
 
 El código existente en la raíz de PrecioAI permanece donde está por ahora. No duplicarlo ni moverlo antes de determinar qué puede reutilizar Mini-PAI.
