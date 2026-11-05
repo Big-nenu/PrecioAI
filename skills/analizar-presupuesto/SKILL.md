@@ -12,6 +12,21 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 6. Comparar alcance, material, método, unidad y condiciones; mostrar hasta cinco candidatos válidos, sin rellenar ni fabricar coincidencias.
 7. Esperar selección del usuario antes de asociar una matriz; nunca modificar ConstruBase.
 
+## Interpretación de catálogo en Mini-PAI (etapa 1)
+- Conservar cada encabezado de agrupación como partida o subpartida, aunque no
+  tenga unidad ni cantidad. Distinguirlo de portada, títulos, totales y notas.
+- Identificar el padre por hoja y fila original, incluso cuando no haya clave
+  o se repitan claves. No invertir los niveles ni arrastrar una subpartida al
+  cambiar de partida. Reportar jerarquías más profundas o ambiguas.
+- Seleccionar celdas como evidencia; las herramientas recuperan el texto y
+  cantidades originales. No volver a escribir o normalizar sus valores.
+- Explicar cada fila excluida; no convertir metadatos en conceptos para cubrir
+  todas las filas. Usar el contrato de salida indicado por la herramienta.
+- Durante esta etapa no ejecutar los pasos 5–7 de búsqueda y selección SQL.
+- En bloques, emitir solo las filas objetivo. Reutilizar los encabezados vigentes
+  como padres de solo lectura, sin duplicarlos. La anticipación solo aporta
+  evidencia de continuaciones; no emitir sus filas como registros independientes.
+
 ## Herramientas previstas (aún no conectadas al agente)
 - Inspección de Excel y PDF sin estructura fija.
 - Búsqueda de conceptos en ConstruBase.
@@ -19,4 +34,8 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 - Exportación del presupuesto elegido.
 
 ## Estado
-Esta skill es una especificación inicial, no un agente operativo. El módulo `proveedor_ia.py` permite probar el modelo local o remoto; aún faltan orquestación, llamadas a herramientas y pruebas con documentos diversos.
+`mini_pai_interpretar.py` usa esta skill y `proveedor_ia.py` para una interpretación
+revisable de Excel con evidencia y validación determinista. No hay agente con
+llamadas autónomas a herramientas. Existe procesamiento por bloques con contexto
+de padres; siguen pendientes su validación sobre libros completos, la integración
+SQL y pruebas con documentos diversos.

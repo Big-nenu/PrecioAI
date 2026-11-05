@@ -37,11 +37,16 @@ def configuracion():
     return base, modelo, clave
 
 
-def consultar_ia(mensajes):
+def consultar_ia(mensajes, *, esquema=None):
     base, modelo, clave = configuracion()
     if not base.startswith(("http://", "https://")):
         raise ValueError("URL de proveedor inválida")
-    cuerpo = json.dumps({"model": modelo, "messages": mensajes, "stream": False}).encode("utf-8")
+    solicitud = {"model": modelo, "messages": mensajes, "stream": False}
+    if esquema is not None:
+        solicitud["temperature"] = 0
+        solicitud["response_format"] = {"type": "json_schema", "json_schema": {
+            "name": "interpretacion_presupuesto", "strict": True, "schema": esquema}}
+    cuerpo = json.dumps(solicitud).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if clave:
         headers["Authorization"] = "Bearer " + clave
@@ -54,7 +59,15 @@ def consultar_ia(mensajes):
     except URLError as exc:
         raise RuntimeError("No se pudo conectar al proveedor de IA") from exc
     try:
-        return datos["choices"][0]["message"]["content"]
+        opcion = datos["choices"][0]
+        if not isinstance(opcion, dict):
+            raise TypeError("La opción no es un objeto")
+        if opcion.get("finish_reason") == "length":
+            raise RuntimeError("La respuesta de IA quedó truncada; reducir el bloque de entrada")
+        contenido = opcion["message"]["content"]
+        if not isinstance(contenido, str):
+            raise TypeError("El contenido no es texto")
+        return contenido
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError("Respuesta inesperada del proveedor de IA") from exc
 
