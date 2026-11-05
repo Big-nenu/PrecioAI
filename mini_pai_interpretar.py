@@ -6,7 +6,7 @@ from pathlib import Path
 from proveedor_ia import consultar_ia
 
 
-def esquema_interpretacion():
+def esquema_interpretacion(inspeccion=None, filas_objetivo=None, contexto=()):
     campos = ("clave", "descripcion", "unidad", "cantidad")
     propiedades = dict(tipo={"type": "string", "enum": ["partida", "subpartida", "concepto", "omitir"]},
                        hoja={"type": "string"}, fila={"type": "integer", "minimum": 1},
@@ -17,12 +17,25 @@ def esquema_interpretacion():
                                       c: {"type": "array", "items": {"type": "string",
                                           "pattern": "^[A-Z]+[1-9][0-9]*$"}}
                                       for c in campos}})
-    return {"type": "object", "additionalProperties": False,
+    if inspeccion is not None:
+        propiedades["hoja"]["enum"] = [h["nombre"] for h in inspeccion["hojas"]]
+        coordenadas = sorted({c for h in inspeccion["hojas"] for f in h["filas"] for c in f["celdas"]})
+        for campo in campos:
+            propiedades["evidencia"]["properties"][campo]["items"]["enum"] = coordenadas
+            propiedades["evidencia"]["properties"][campo]["maxItems"] = len(coordenadas)
+    if filas_objetivo is not None:
+        propiedades["fila"]["enum"] = sorted({f for _, f in filas_objetivo})
+        propiedades["padre"]["enum"] = [None, *sorted(
+            {f for _, f in filas_objetivo} | {r["fila"] for r in contexto})]
+    esquema = {"type": "object", "additionalProperties": False,
             "required": ["registros", "dudas"], "properties": {
                 "registros": {"type": "array", "items": {"type": "object",
                     "additionalProperties": False, "required": list(propiedades),
                     "properties": propiedades}},
                 "dudas": {"type": "array", "items": {"type": "string"}}}}
+    if filas_objetivo is not None:
+        esquema["properties"]["registros"]["maxItems"] = len(filas_objetivo)
+    return esquema
 
 
 def inspeccionar_excel(ruta):
@@ -48,12 +61,15 @@ def inspeccionar_excel(ruta):
         libro.close()
 
 
-def interpretar(ruta, skill=None, *, hoja=None, fila_inicial=1, fila_final=None):
+def interpretar(ruta, skill=None, *, hoja=None, fila_inicial=1, fila_final=None,
+                tamano_bloque=5):
     skill = skill or Path(__file__).resolve().parent / "skills/analizar-presupuesto/SKILL.md"
     instrucciones = Path(skill).read_text(encoding="utf-8")
     inspeccion = inspeccionar_excel(ruta)
     if fila_inicial < 1 or (fila_final is not None and fila_final < fila_inicial):
         raise ValueError("Rango de filas inválido")
+    if type(tamano_bloque) is not int or tamano_bloque < 1:
+        raise ValueError("El tamaño de bloque debe ser un entero positivo")
     if hoja is not None and hoja not in {h["nombre"] for h in inspeccion["hojas"]}:
         raise ValueError("La hoja solicitada no existe")
     inspeccion["hojas"] = [
@@ -62,6 +78,53 @@ def interpretar(ruta, skill=None, *, hoja=None, fila_inicial=1, fila_final=None)
         for h in inspeccion["hojas"] if hoja is None or h["nombre"] == hoja]
     if not any(h["filas"] for h in inspeccion["hojas"]):
         raise ValueError("El alcance solicitado no contiene celdas con datos")
+    resultado = dict(registros=[], excluidas=[], dudas=[], bloques=[])
+    for h in inspeccion["hojas"]:
+        pendientes = h["filas"][:]
+        contexto = []
+        while pendientes:
+            objetivo = pendientes[:tamano_bloque]
+            # Dos filas de anticipación permiten cerrar descripciones en el corte.
+            anticipacion = pendientes[tamano_bloque:tamano_bloque + 2]
+            entrada = {"archivo": inspeccion["archivo"], "hojas": [
+                {"nombre": h["nombre"], "filas": objetivo + anticipacion}]}
+            filas_objetivo = {(h["nombre"], f["fila"]) for f in objetivo}
+            try:
+                datos = interpretar_bloque(entrada, instrucciones, contexto, filas_objetivo)
+            except (ValueError, RuntimeError, TimeoutError) as exc:
+                raise type(exc)(f"Falló bloque de {h['nombre']}, filas "
+                                f"{objetivo[0]['fila']}–{objetivo[-1]['fila']}: {exc}") from exc
+            usadas = {f["fila"] for f in objetivo}
+            for registro in datos["registros"]:
+                for refs in registro["evidencia"].values():
+                    for coordenada in refs:
+                        # Las coordenadas ya están validadas contra la entrada.
+                        usadas.add(int("".join(c for c in coordenada if c.isdigit())))
+                if registro["tipo"] == "partida":
+                    contexto = [registro]
+                elif registro["tipo"] == "subpartida":
+                    contexto = [r for r in contexto if r["tipo"] == "partida"] + [registro]
+            resultado["registros"].extend(datos["registros"])
+            resultado["excluidas"].extend(datos["excluidas"])
+            resultado["dudas"].extend(datos["dudas"])
+            resultado["bloques"].append({"hoja": h["nombre"],
+                "filas_objetivo": [f["fila"] for f in objetivo],
+                "filas_continuacion": sorted(usadas - {f["fila"] for f in objetivo})})
+            pendientes = [f for f in pendientes if f["fila"] not in usadas]
+    validar(resultado, inspeccion)
+    return {**resultado, "archivo": inspeccion["archivo"], "alcance": {
+        "hoja": hoja, "fila_inicial": fila_inicial, "fila_final": fila_final,
+        "parcial": hoja is not None or fila_inicial != 1 or fila_final is not None}}
+
+
+def interpretar_bloque(inspeccion, instrucciones, contexto, filas_objetivo):
+    """Interpreta filas nuevas usando solo encabezados previamente validados."""
+    contenido = {"archivo": inspeccion["archivo"], "hojas": [
+        {"nombre": h["nombre"], "filas": [f for f in h["filas"]
+            if (h["nombre"], f["fila"]) in filas_objetivo]} for h in inspeccion["hojas"]],
+        "anticipacion": [f for h in inspeccion["hojas"] for f in h["filas"]
+            if (h["nombre"], f["fila"]) not in filas_objetivo],
+        "encabezados_vigentes": contexto, "filas_objetivo": sorted(f for _, f in filas_objetivo)}
     mensajes = [
         {"role": "system", "content": instrucciones + """
 Para esta tarea SOLO interpreta la estructura del presupuesto Excel.
@@ -110,17 +173,25 @@ Antes de responder comprueba que no omitiste encabezados de agrupación y
 que cada relación remite a un encabezado anterior de la misma hoja.
 Conserva las filas de origen y reporta ambigüedades en dudas.
 No busques matrices ni hagas consultas SQL."""},
-        {"role": "user", "content": json.dumps(inspeccion, ensure_ascii=False)},
+        {"role": "system", "content": "Interpreta SOLO filas_objetivo. Los encabezados_vigentes "
+         "son contexto validado de la misma hoja: puedes citarlos como padre, pero NO volver "
+         "a emitirlos ni modificarlos. Las filas adicionales son anticipación: cita sus celdas "
+         "solo si continúan un registro que empieza en filas_objetivo; no emitas registros "
+         "ni exclusiones para ellas. Una subpartida nueva reemplaza la anterior; una partida "
+         "nueva reinicia ambos niveles. Las filas de contexto y anticipación no requieren "
+         "clasificación en este bloque."},
+        {"role": "user", "content": json.dumps(contenido, ensure_ascii=False)},
     ]
     for intento in range(2):
-        respuesta = consultar_ia(mensajes, esquema=esquema_interpretacion())
+        respuesta = consultar_ia(mensajes, esquema=esquema_interpretacion(
+            inspeccion, filas_objetivo, contexto))
         try:
             try:
                 propuesta = json.loads(respuesta)
             except json.JSONDecodeError as exc:
                 raise ValueError("La IA no devolvió JSON válido; revisar la respuesta") from exc
-            datos = materializar(propuesta, inspeccion)
-            validar(datos, inspeccion)
+            datos = materializar(propuesta, inspeccion, contexto=contexto, filas_objetivo=filas_objetivo)
+            validar(datos, inspeccion, contexto=contexto)
         except ValueError as exc:
             if intento:
                 raise
@@ -130,12 +201,10 @@ No busques matrices ni hagas consultas SQL."""},
                  + ". Revisa TODA la clasificación, evidencia y jerarquía contra el Excel original. "
                  "Devuelve el objeto JSON completo corregido. No inventes datos para pasar la validación."}]
         else:
-            return {**datos, "archivo": inspeccion["archivo"], "alcance": {
-                "hoja": hoja, "fila_inicial": fila_inicial, "fila_final": fila_final,
-                "parcial": hoja is not None or fila_inicial != 1 or fila_final is not None}}
+            return datos
 
 
-def materializar(propuesta, inspeccion):
+def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
     """La IA selecciona evidencia y padres; Python conserva los valores exactos."""
     if (not isinstance(propuesta, dict) or not isinstance(propuesta.get("registros"), list)
             or not isinstance(propuesta.get("dudas"), list)
@@ -143,8 +212,10 @@ def materializar(propuesta, inspeccion):
         raise ValueError("La respuesta no cumple la estructura requerida")
     celdas = {(h["nombre"], c): v for h in inspeccion["hojas"]
               for f in h["filas"] for c, v in f["celdas"].items()}
-    registros, anteriores, excluidas = [], {}, []
+    registros, excluidas = [], []
+    anteriores = {(r["hoja"], r["fila"]): r for r in contexto}
     filas = {(h["nombre"], f["fila"]) for h in inspeccion["hojas"] for f in h["filas"]}
+    filas_objetivo = filas if filas_objetivo is None else filas_objetivo
     filas_celdas = {(h["nombre"], c): (h["nombre"], f["fila"])
                    for h in inspeccion["hojas"] for f in h["filas"] for c in f["celdas"]}
     declaradas, cubiertas = set(), set()
@@ -157,8 +228,10 @@ def materializar(propuesta, inspeccion):
                 or not isinstance(propuesto["evidencia"], dict)):
             raise ValueError("Propuesta incompleta o con tipos inválidos")
         origen = (propuesto["hoja"], propuesto["fila"])
-        if origen not in filas or origen in declaradas:
-            raise ValueError(f"Fila inexistente o duplicada: {origen}")
+        if origen not in filas_objetivo:
+            raise ValueError(f"Fila {origen} fuera del bloque; emitir solo {sorted(filas_objetivo)}")
+        if origen in declaradas:
+            raise ValueError(f"Fila duplicada: {origen}")
         declaradas.add(origen)
         cubiertas.add(origen)
         if propuesto["tipo"] == "omitir":
@@ -196,12 +269,12 @@ def materializar(propuesta, inspeccion):
             raise ValueError("Una subpartida requiere una partida padre")
         registros.append(registro)
         anteriores[registro["hoja"], registro["fila"]] = registro
-    if filas - cubiertas:
-        raise ValueError(f"Filas sin interpretar ni excluir: {sorted(filas - cubiertas)[:10]}")
+    if filas_objetivo - cubiertas:
+        raise ValueError(f"Filas sin interpretar ni excluir: {sorted(filas_objetivo - cubiertas)[:10]}")
     return {"registros": registros, "dudas": propuesta["dudas"], "excluidas": excluidas}
 
 
-def validar(datos, inspeccion):
+def validar(datos, inspeccion, *, contexto=()):
     """Rechaza referencias inventadas y tipos fuera del contrato."""
     if not isinstance(datos, dict) or not isinstance(datos.get("registros"), list) or not isinstance(datos.get("dudas"), list):
         raise ValueError("La respuesta no cumple la estructura requerida")
@@ -240,7 +313,7 @@ def validar(datos, inspeccion):
                 raise ValueError("La evidencia no inicia en la fila del registro")
             if valor != " ".join(f[1] for f in fuentes):
                 raise ValueError("El valor no coincide con las celdas de origen")
-    validar_jerarquia(datos["registros"])
+    validar_jerarquia([*contexto, *datos["registros"]])
 
 
 def validar_jerarquia(registros):
@@ -288,9 +361,12 @@ def main():
     parser.add_argument("--hoja", help="Limitar la prueba a una hoja por su nombre")
     parser.add_argument("--fila-inicial", type=int, default=1)
     parser.add_argument("--fila-final", type=int)
+    parser.add_argument("--tamano-bloque", type=int, default=5,
+                        help="Máximo de filas no vacías nuevas por petición (por defecto 5)")
     args = parser.parse_args()
     datos = interpretar(args.archivo, hoja=args.hoja,
-                        fila_inicial=args.fila_inicial, fila_final=args.fila_final)
+                        fila_inicial=args.fila_inicial, fila_final=args.fila_final,
+                        tamano_bloque=args.tamano_bloque)
     texto = json.dumps(datos, ensure_ascii=False, indent=2)
     if args.salida:
         Path(args.salida).write_text(texto, encoding="utf-8")

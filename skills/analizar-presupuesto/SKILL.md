@@ -23,6 +23,9 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 - Explicar cada fila excluida; no convertir metadatos en conceptos para cubrir
   todas las filas. Usar el contrato de salida indicado por la herramienta.
 - Durante esta etapa no ejecutar los pasos 5–7 de búsqueda y selección SQL.
+- En bloques, emitir solo las filas objetivo. Reutilizar los encabezados vigentes
+  como padres de solo lectura, sin duplicarlos. La anticipación solo aporta
+  evidencia de continuaciones; no emitir sus filas como registros independientes.
 
 ## Herramientas previstas (aún no conectadas al agente)
 - Inspección de Excel y PDF sin estructura fija.
@@ -33,5 +36,6 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 ## Estado
 `mini_pai_interpretar.py` usa esta skill y `proveedor_ia.py` para una interpretación
 revisable de Excel con evidencia y validación determinista. No hay agente con
-llamadas autónomas a herramientas; siguen pendientes la integración SQL, el
-procesamiento de libros completos por bloques y pruebas con documentos diversos.
+llamadas autónomas a herramientas. Existe procesamiento por bloques con contexto
+de padres; siguen pendientes su validación sobre libros completos, la integración
+SQL y pruebas con documentos diversos.

@@ -20,7 +20,8 @@ class PruebasInterpretacion(unittest.TestCase):
         self.assertEqual(resultado["alcance"], dict(hoja="Obra", fila_inicial=7, fila_final=8, parcial=True))
         self.assertEqual(resultado["registros"][0]["fila"], 7)
         for opciones in (dict(hoja="Inexistente"), dict(fila_inicial=0),
-                         dict(fila_inicial=9, fila_final=3), dict(fila_inicial=100)):
+                         dict(fila_inicial=9, fila_final=3), dict(fila_inicial=100),
+                         dict(tamano_bloque=0), dict(tamano_bloque=True)):
             with self.subTest(opciones=opciones), patch(
                     "mini_pai_interpretar.inspeccionar_excel", return_value=deepcopy(origen)), patch(
                     "mini_pai_interpretar.consultar_ia") as ia:
@@ -167,7 +168,7 @@ class PruebasInterpretacion(unittest.TestCase):
             resultado = interpretar("sintetico.xlsx")
         self.assertEqual(resultado["archivo"], "sintetico.xlsx")
         self.assertEqual(resultado["registros"], [{**respuesta["registros"][0], "padre": None, "motivo": None}])
-        self.assertIn("F7", ia.call_args.args[0][1]["content"])
+        self.assertIn("F7", ia.call_args.args[0][-1]["content"])
         self.assertEqual(ia.call_args.kwargs["esquema"]["required"], ["registros", "dudas"])
 
     def test_rechaza_valor_inventado_y_celda_ajena(self):
