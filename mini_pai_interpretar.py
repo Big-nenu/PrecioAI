@@ -218,7 +218,7 @@ def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
     filas_objetivo = filas if filas_objetivo is None else filas_objetivo
     filas_celdas = {(h["nombre"], c): (h["nombre"], f["fila"])
                    for h in inspeccion["hojas"] for f in h["filas"] for c in f["celdas"]}
-    declaradas, cubiertas = set(), set()
+    declaradas, cubiertas, continuaciones = set(), set(), set()
     for propuesto in propuesta["registros"]:
         if (not isinstance(propuesto, dict)
                 or set(propuesto) != {"tipo", "hoja", "fila", "padre", "motivo", "evidencia"}
@@ -227,6 +227,8 @@ def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
                 or (propuesto["padre"] is not None and type(propuesto["padre"]) is not int)
                 or not isinstance(propuesto["evidencia"], dict)):
             raise ValueError("Propuesta incompleta o con tipos inválidos")
+        if set(propuesto["evidencia"]) != {"clave", "descripcion", "unidad", "cantidad"}:
+            raise ValueError("Evidencia fuera del contrato")
         origen = (propuesto["hoja"], propuesto["fila"])
         if origen not in filas_objetivo:
             raise ValueError(f"Fila {origen} fuera del bloque; emitir solo {sorted(filas_objetivo)}")
@@ -251,6 +253,8 @@ def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
                 raise ValueError(f"Evidencia inválida en fila {registro['fila']}, campo {campo}")
             registro[campo] = " ".join(celdas[registro["hoja"], r] for r in refs) if refs else None
             cubiertas.update(filas_celdas[registro["hoja"], r] for r in refs)
+            continuaciones.update(filas_celdas[registro["hoja"], r] for r in refs
+                                  if filas_celdas[registro["hoja"], r] != origen)
         if all(registro[c] is None for c in ("clave", "descripcion", "unidad", "cantidad")):
             raise ValueError("Registro sin evidencia; clasificar la fila o excluirla con motivo")
         if registro["tipo"] != "concepto" and (registro["unidad"] is not None or registro["cantidad"] is not None):
@@ -269,6 +273,8 @@ def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
             raise ValueError("Una subpartida requiere una partida padre")
         registros.append(registro)
         anteriores[registro["hoja"], registro["fila"]] = registro
+    if declaradas & continuaciones:
+        raise ValueError("Una fila no puede declararse y usarse como continuación de otro registro")
     if filas_objetivo - cubiertas:
         raise ValueError(f"Filas sin interpretar ni excluir: {sorted(filas_objetivo - cubiertas)[:10]}")
     return {"registros": registros, "dudas": propuesta["dudas"], "excluidas": excluidas}
@@ -364,6 +370,11 @@ def main():
     parser.add_argument("--tamano-bloque", type=int, default=5,
                         help="Máximo de filas no vacías nuevas por petición (por defecto 5)")
     args = parser.parse_args()
+    if args.salida:
+        origen, destino = Path(args.archivo), Path(args.salida)
+        if (origen.resolve() == destino.resolve()
+                or origen.exists() and destino.exists() and origen.samefile(destino)):
+            parser.error("La salida debe ser distinta del Excel original")
     datos = interpretar(args.archivo, hoja=args.hoja,
                         fila_inicial=args.fila_inicial, fila_final=args.fila_final,
                         tamano_bloque=args.tamano_bloque)
