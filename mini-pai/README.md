@@ -56,6 +56,18 @@ La salida conserva archivo, hoja, fila y evidencia por celda de clave,
 descripción, unidad y cantidad. Se exige transcripción exacta; las cantidades
 se conservan como texto, sin normalización. Las descripciones pueden abarcar
 varias celdas. Se rechazan valores que no coincidan con la evidencia.
+Se solicita un esquema JSON mediante `response_format` (el proveedor debe
+soportarlo); se rechazan respuestas truncadas. Cuando la única diferencia
+son espacios o saltos de línea, se recupera el texto exacto de las celdas
+citadas antes de validar. No se reparan palabras, números ni signos distintos.
+
+**Prueba local acotada (2026-11-05):** con `nemotron-3.5-bolt:e4b`, un bloque
+de 25 filas de un presupuesto real produjo cinco conceptos con evidencia
+validada después de restaurar espacios. Omitió los tres encabezados de
+partida/subpartida presentes: no es una interpretación completa. La petición
+anterior del libro completo, sin esquema JSON, devolvió un resumen en prosa.
+El archivo y las respuestas privadas no se versionan. Siguiente problema
+comprobado: cobertura de encabezados y continuidad de jerarquías entre bloques.
 
 **Comprobado con pruebas sintéticas y proveedor simulado:** extracción de
 coordenadas sin columnas fijas, contrato de evidencia y rechazo de valores

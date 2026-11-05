@@ -6,10 +6,21 @@ import json
 
 from openpyxl import Workbook
 
-from mini_pai_interpretar import inspeccionar_excel, validar, interpretar
+from mini_pai_interpretar import inspeccionar_excel, validar, interpretar, restaurar_espacios_originales
 
 
 class PruebasInterpretacion(unittest.TestCase):
+    def test_restaura_solo_espacios_y_conserva_rechazo_de_cantidad(self):
+        origen, datos = self.ejemplo()
+        origen["hojas"][0]["filas"][0]["celdas"]["F7"] = "Trazo  \n"
+        restaurar_espacios_originales(datos, origen)
+        self.assertEqual(datos["registros"][0]["descripcion"], "Trazo  \n con equipo")
+        validar(datos, origen)
+        datos["registros"][0]["cantidad"] = "999"
+        restaurar_espacios_originales(datos, origen)
+        with self.assertRaisesRegex(ValueError, "no coincide"):
+            validar(datos, origen)
+
     def ejemplo(self):
         origen = {"archivo": "sintetico.xlsx", "hojas": [{"nombre": "Obra", "filas": [
             {"fila": 7, "celdas": {"F7": "Trazo", "J7": "12.50", "C7": "m2"}},
@@ -28,6 +39,7 @@ class PruebasInterpretacion(unittest.TestCase):
         self.assertEqual(resultado["archivo"], "sintetico.xlsx")
         self.assertEqual(resultado["registros"], respuesta["registros"])
         self.assertIn("F7", ia.call_args.args[0][1]["content"])
+        self.assertEqual(ia.call_args.kwargs["esquema"]["required"], ["registros", "dudas"])
 
     def test_rechaza_valor_inventado_y_celda_ajena(self):
         for cambio in ("valor", "celda", "fila", "sin_evidencia", "tipo_fila"):

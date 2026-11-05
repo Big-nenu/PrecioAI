@@ -6,6 +6,24 @@ from pathlib import Path
 from proveedor_ia import consultar_ia
 
 
+def esquema_interpretacion():
+    campos = ("clave", "descripcion", "unidad", "cantidad")
+    propiedades = {c: {"type": ["string", "null"]}
+                   for c in (*campos, "partida", "subpartida")}
+    propiedades.update(tipo={"type": "string", "enum": ["partida", "subpartida", "concepto"]},
+                       hoja={"type": "string"}, fila={"type": "integer"},
+                       evidencia={"type": "object", "additionalProperties": False,
+                                  "required": list(campos), "properties": {
+                                      c: {"type": "array", "items": {"type": "string"}}
+                                      for c in campos}})
+    return {"type": "object", "additionalProperties": False,
+            "required": ["registros", "dudas"], "properties": {
+                "registros": {"type": "array", "items": {"type": "object",
+                    "additionalProperties": False, "required": list(propiedades),
+                    "properties": propiedades}},
+                "dudas": {"type": "array", "items": {"type": "string"}}}}
+
+
 def inspeccionar_excel(ruta):
     """Devuelve celdas no vacías con coordenadas, sin inferir columnas."""
     from openpyxl import load_workbook
@@ -51,13 +69,40 @@ No inventes datos ni clasifiques como concepto una fila sin evidencia.
 Conserva las filas de origen y reporta ambigüedades en dudas.
 No busques matrices ni hagas consultas SQL."""},
         {"role": "user", "content": json.dumps(inspeccion, ensure_ascii=False)},
-    ])
+    ], esquema=esquema_interpretacion())
     try:
         datos = json.loads(respuesta)
     except json.JSONDecodeError as exc:
         raise ValueError("La IA no devolvió JSON válido; revisar la respuesta") from exc
+    restaurar_espacios_originales(datos, inspeccion)
     validar(datos, inspeccion)
     return {**datos, "archivo": inspeccion["archivo"]}
+
+
+def restaurar_espacios_originales(datos, inspeccion):
+    """Recupera el texto original solo si la IA cambió exclusivamente espacios.
+
+    No acepta palabras, números o signos diferentes; validar sigue siendo obligatorio.
+    """
+    celdas = {(h["nombre"], c): v for h in inspeccion["hojas"]
+              for f in h["filas"] for c, v in f["celdas"].items()}
+    if not isinstance(datos, dict) or not isinstance(datos.get("registros"), list):
+        return
+    for registro in datos["registros"]:
+        if not isinstance(registro, dict) or not isinstance(registro.get("hoja"), str):
+            continue
+        evidencia = registro.get("evidencia")
+        if not isinstance(evidencia, dict):
+            continue
+        for campo in ("clave", "descripcion", "unidad", "cantidad"):
+            refs, valor = evidencia.get(campo), registro.get(campo)
+            if (not isinstance(valor, str) or not isinstance(refs, list) or not refs
+                    or any(not isinstance(r, str) or (registro["hoja"], r) not in celdas
+                           for r in refs)):
+                continue
+            original = " ".join(celdas[registro["hoja"], r] for r in refs)
+            if " ".join(valor.split()) == " ".join(original.split()):
+                registro[campo] = original
 
 
 def validar(datos, inspeccion):
