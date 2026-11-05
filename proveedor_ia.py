@@ -59,9 +59,15 @@ def consultar_ia(mensajes, *, esquema=None):
     except URLError as exc:
         raise RuntimeError("No se pudo conectar al proveedor de IA") from exc
     try:
-        if datos["choices"][0].get("finish_reason") == "length":
+        opcion = datos["choices"][0]
+        if not isinstance(opcion, dict):
+            raise TypeError("La opción no es un objeto")
+        if opcion.get("finish_reason") == "length":
             raise RuntimeError("La respuesta de IA quedó truncada; reducir el bloque de entrada")
-        return datos["choices"][0]["message"]["content"]
+        contenido = opcion["message"]["content"]
+        if not isinstance(contenido, str):
+            raise TypeError("El contenido no es texto")
+        return contenido
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError("Respuesta inesperada del proveedor de IA") from exc
 

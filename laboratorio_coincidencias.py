@@ -22,7 +22,10 @@ def post(base, ruta, cuerpo):
                        headers={"Content-Type": "application/json"}, method="POST")
     try:
         with urlopen(peticion, timeout=120) as respuesta:
-            return json.load(respuesta)
+            datos = json.load(respuesta)
+        if not isinstance(datos, dict):
+            raise ValueError("Ollama devolvió JSON fuera del contrato")
+        return datos
     except HTTPError as exc:
         raise RuntimeError(f"Ollama HTTP {exc.code} en {ruta}") from exc
     except (URLError, TimeoutError) as exc:
@@ -46,7 +49,7 @@ def validar_muestra(datos):
             raise ValueError(f"Falta {tabla}")
         indice = {}
         for fila in datos[tabla]:
-            if (not isinstance(fila.get("id"), str) or not fila["id"]
+            if (not isinstance(fila, dict) or not isinstance(fila.get("id"), str) or not fila["id"]
                     or fila["id"] in indice or not isinstance(fila.get("descripcion"), str)
                     or not fila["descripcion"].strip()
                     or fila.get("unidad") is not None and not isinstance(fila["unidad"], str)):
@@ -59,8 +62,13 @@ def validar_muestra(datos):
         if esperados is not None and (not isinstance(esperados, list)
                 or any(not isinstance(i, str) or i not in candidatos for i in esperados)):
             raise ValueError("Etiqueta de recuperación fuera de la muestra")
-    for par in datos.get("pares", []):
-        if (par.get("consulta_id") not in consultas or par.get("candidato_id") not in candidatos
+    pares = datos.get("pares", [])
+    if not isinstance(pares, list):
+        raise ValueError("Los pares deben ser una lista")
+    for par in pares:
+        if (not isinstance(par, dict) or not isinstance(par.get("consulta_id"), str)
+                or not isinstance(par.get("candidato_id"), str)
+                or par["consulta_id"] not in consultas or par["candidato_id"] not in candidatos
                 or par.get("esperado") not in (None, "compatible", "incompatible", "dudoso")):
             raise ValueError("Par de evaluación inválido")
     return candidatos, consultas
@@ -143,7 +151,7 @@ def memoria_observada(base, modelo):
             modelos = json.load(respuesta)["models"]
         actual = next((m for m in modelos if m.get("name") == modelo or m.get("model") == modelo), None)
         return {k: actual.get(k) for k in ("size", "size_vram", "context_length")} if actual else None
-    except (URLError, TimeoutError, KeyError):
+    except (URLError, TimeoutError, KeyError, TypeError, AttributeError, ValueError):
         return None
 
 
@@ -156,7 +164,7 @@ def entorno_modelos(base, modelos):
         return dict(ollama=version, python=platform.python_version(), numpy=np.__version__,
                     modelos=[{k: m.get(k) for k in ("name", "digest", "size", "details")}
                              for m in instalados if m.get("name") in modelos])
-    except (URLError, TimeoutError, KeyError) as exc:
+    except (URLError, TimeoutError, KeyError, TypeError, AttributeError, ValueError) as exc:
         return dict(error=f"No se pudo registrar el entorno: {type(exc).__name__}")
 
 
@@ -171,8 +179,11 @@ def evaluar_par(base, modelo, consulta, candidato):
                 "compatible": "Coinciden el trabajo y las condiciones técnicas relevantes sin contradicciones.",
                 "incompatible": "Existe una diferencia explícita de trabajo, unidad, material, dimensiones o método.",
                 "dudoso": "Falta información esencial o hay ambigüedad para establecer equivalencia."})}))
-    decision = respuesta.get("answers", {}).get("compatibilidad", {})
-    if decision.get("choice") not in ("compatible", "incompatible", "dudoso"):
+    answers = respuesta.get("answers")
+    if not isinstance(answers, dict):
+        raise ValueError("Respuesta de TEV1 fuera del contrato")
+    decision = answers.get("compatibilidad")
+    if not isinstance(decision, dict) or decision.get("choice") not in ("compatible", "incompatible", "dudoso"):
         raise ValueError("Respuesta de TEV1 fuera del contrato")
     probabilidades = decision.get("probabilities", {})
     if not isinstance(probabilidades, dict) or any(
@@ -218,7 +229,7 @@ def ejecutar(datos, base, modelos, *, tev1=None, progreso=None, entorno=None):
         finally:
             try:
                 post(base, "/api/embed", dict(model=modelo, input=[], keep_alive=0))
-            except RuntimeError as exc:
+            except (RuntimeError, ValueError) as exc:
                 reporte.setdefault("errores_descarga", []).append(str(exc))
             guardar()
     if tev1:
@@ -242,7 +253,7 @@ def ejecutar(datos, base, modelos, *, tev1=None, progreso=None, entorno=None):
             nota="Las etiquetas del laboratorio requieren revisión humana; confianza del modelo no es probabilidad de acierto.")
         try:
             post(base, "/api/generate", dict(model=tev1, keep_alive=0))
-        except RuntimeError as exc:
+        except (RuntimeError, ValueError) as exc:
             reporte.setdefault("errores_descarga", []).append(str(exc))
     reporte["estado"] = "completado"
     guardar()
@@ -257,7 +268,9 @@ def main():
     parser.add_argument("--modelos", nargs="+", default=["embeddinggemma-2:270m", "nomic-embed-text:latest"])
     parser.add_argument("--tev1", help="Modelo opcional para evaluar los pares de la muestra")
     args = parser.parse_args()
-    if Path(args.muestra).resolve() == Path(args.salida).resolve():
+    origen, destino = Path(args.muestra), Path(args.salida)
+    if (origen.resolve() == destino.resolve()
+            or origen.exists() and destino.exists() and origen.samefile(destino)):
         parser.error("La salida debe ser distinta de la muestra de entrada")
     datos = json.loads(Path(args.muestra).read_text(encoding="utf-8"))
     entorno = entorno_modelos(args.base_url, [*args.modelos, *([args.tev1] if args.tev1 else [])])

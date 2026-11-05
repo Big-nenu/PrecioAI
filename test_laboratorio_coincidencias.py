@@ -4,9 +4,10 @@ from unittest.mock import patch
 
 try:
     import numpy as np
-    import laboratorio_coincidencias as lab
 except ImportError:
     np = None
+if np is not None:
+    import laboratorio_coincidencias as lab
 
 
 @unittest.skipIf(np is None, "Instalar requirements-laboratorio.txt para evaluar el laboratorio")

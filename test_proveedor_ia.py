@@ -7,6 +7,15 @@ import proveedor_ia
 
 
 class TestProveedorIA(unittest.TestCase):
+    def test_respuesta_malformada_se_reporta_como_error_de_proveedor(self):
+        for opcion in (None, "texto", [], {"message": {"content": None}},
+                       {"message": {"content": {"objeto": True}}}):
+            with self.subTest(opcion=opcion), patch("proveedor_ia.configuracion", return_value=(
+                    "http://localhost/v1", "modelo", "")), patch("proveedor_ia.urlopen") as abrir:
+                abrir.return_value.__enter__.return_value = io.StringIO(json.dumps({"choices": [opcion]}))
+                with self.assertRaisesRegex(RuntimeError, "Respuesta inesperada"):
+                    proveedor_ia.consultar_ia([])
+
     def test_esquema_opcional_y_respuesta_truncada(self):
         for esquema in (None, {"type": "object"}):
             with self.subTest(esquema=esquema), patch(
