@@ -35,7 +35,7 @@ El Código auxiliar admite **hasta 20 caracteres** según el manual. El código 
 | Etapa | Tarea | Estado |
 | --- | --- | --- |
 | 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; falta integrar IA y evaluar equivalencias |
-| 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **Pendiente**: existe un lector prototipo para un formato específico, no un lector flexible |
+| 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; un bloque real validado, libro completo pendiente |
 | 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Pendiente de integración**: existen funciones de búsqueda iniciales |
 | 3 | Generar Excel con códigos y descripciones auxiliares | **Pendiente** |
 | 4 | Generar reporte y comprobar importación en Neodata | **Pendiente** |
@@ -52,30 +52,47 @@ sin columnas fijas y solicita clasificación a la IA. Requiere configurar el
 proveedor como indica el README principal; el contenido del Excel se envía a ese
 proveedor. Usa únicamente archivos autorizados para ese destino.
 
-La salida conserva archivo, hoja, fila y evidencia por celda de clave,
-descripción, unidad y cantidad. Se exige transcripción exacta; las cantidades
-se conservan como texto, sin normalización. Las descripciones pueden abarcar
-varias celdas. Se rechazan valores que no coincidan con la evidencia.
-Se solicita un esquema JSON mediante `response_format` (el proveedor debe
-soportarlo); se rechazan respuestas truncadas. Cuando la única diferencia
-son espacios o saltos de línea, se recupera el texto exacto de las celdas
-citadas antes de validar. No se reparan palabras, números ni signos distintos.
+La IA devuelve tipo, hoja, fila, **padre por fila**, evidencia por celda y motivo
+de exclusión. Python recupera clave, descripción, unidad y cantidad directamente
+del Excel, conservando espacios, saltos de línea y cantidades como texto. No se
+pide al modelo transcribirlos ni normalizarlos. Las descripciones pueden abarcar
+varias celdas. `partida` y `subpartida` conservan las claves de los padres cuando
+existen; `padre` identifica el encabezado incluso sin clave o con claves repetidas.
 
-**Prueba local acotada (2026-11-05):** con `nemotron-3.5-bolt:e4b`, un bloque
-de 25 filas de un presupuesto real produjo cinco conceptos con evidencia
-validada después de restaurar espacios. Omitió los tres encabezados de
-partida/subpartida presentes: no es una interpretación completa. La petición
-anterior del libro completo, sin esquema JSON, devolvió un resumen en prosa.
-El archivo y las respuestas privadas no se versionan. Siguiente problema
-comprobado: cobertura de encabezados y continuidad de jerarquías entre bloques.
+Se solicita esquema JSON y temperatura cero mediante `response_format` (el
+proveedor debe soportarlo). Se validan celdas, orden, padres anteriores de la
+misma hoja y reinicio de subpartida al cambiar de partida. Las filas excluidas
+se conservan en `excluidas` con motivo. Toda fila no vacía del alcance debe
+quedar declarada o citada como continuación. Si falla la validación, se permite
+un único intento de corrección con el error; una segunda respuesta inválida
+se rechaza. Las respuestas truncadas y errores de conexión no se reintentan.
 
-**Comprobado con pruebas sintéticas y proveedor simulado:** extracción de
-coordenadas sin columnas fijas, contrato de evidencia y rechazo de valores
-inventados. **Pendiente:** modelos reales, distintos presupuestos reales,
-fórmulas sin caché, celdas combinadas, libros grandes y revisión de jerarquías.
-La clasificación, las referencias textuales de partida/subpartida y la
-integridad de la extracción requieren revisión humana; validar evidencia no
-demuestra que el campo o concepto elegido sea correcto ni que no haya omisiones.
+Para una prueba parcial reproducible, sin fijar columnas:
+
+```powershell
+$env:PRECIOAI_AI_PROVIDER = 'ollama'
+$env:PRECIOAI_AI_MODEL = 'nemotron-3.5-bolt:e4b'
+python mini_pai_interpretar.py entrada.xlsx --hoja Conceptos --fila-inicial 16 --fila-final 25 --salida revision.json
+```
+
+`alcance.parcial` identifica estas pruebas. Un rango no trae contexto anterior:
+debe incluir los encabezados necesarios; no equivale aún a procesamiento por bloques.
+
+**Comprobado (2026-11-05):** con Nemotron local, las filas 16–25 de un presupuesto
+real devolvieron una partida, dos subpartidas y cinco conceptos con padres y
+evidencia correctos; dos filas de metadatos se excluyeron con motivo. Se verificó
+contra las celdas originales. El bloque con portada completa no concluyó dentro
+del límite de 120 segundos. El archivo y las respuestas privadas no se versionan.
+
+**Comprobado con pruebas sintéticas:** columnas variables, jerarquías, padres sin
+clave, cantidades cero, descripciones multicelda, exclusiones, cobertura, rangos,
+rechazo de referencias inventadas y un único reintento de validación.
+**Pendiente:** distintos presupuestos, portada completa, fórmulas sin caché,
+celdas combinadas y libros grandes. La cobertura solo comprueba que cada fila
+fue declarada o citada: la IA aún puede omitir un concepto mediante una exclusión
+incorrecta o seleccionar celdas/tipos equivocados. Revisar también `excluidas`.
+El contrato actual admite dos niveles de agrupación; los niveles adicionales
+deben reportarse como duda. Siguiente incremento: bloques con continuidad de padres.
 Todavía no hay agente con llamadas autónomas a herramientas ni exportación.
 
 Se contempla una **skill** especializada (instrucciones para la IA) y herramientas concretas para inspeccionar Excel, consultar ConstruBase y generar el archivo de salida. La carpeta `references/` podría guardar reglas y documentación de Neodata; `scripts/` contendría funciones ejecutables. **Esta estructura aún es una propuesta, no está implementada.** Se busca mantener el sistema utilizable con distintos modelos de IA, sin depender de uno específico.

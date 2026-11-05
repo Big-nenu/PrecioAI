@@ -43,6 +43,7 @@ def consultar_ia(mensajes, *, esquema=None):
         raise ValueError("URL de proveedor inválida")
     solicitud = {"model": modelo, "messages": mensajes, "stream": False}
     if esquema is not None:
+        solicitud["temperature"] = 0
         solicitud["response_format"] = {"type": "json_schema", "json_schema": {
             "name": "interpretacion_presupuesto", "strict": True, "schema": esquema}}
     cuerpo = json.dumps(solicitud).encode("utf-8")
