@@ -36,13 +36,18 @@ El Código auxiliar admite **hasta 20 caracteres** según el manual. El código 
 | --- | --- | --- |
 | 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; falta integrar IA y evaluar equivalencias |
 | 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; un bloque real validado, libro completo pendiente |
-| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Pendiente de integración**: existen funciones de búsqueda iniciales |
+| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Laboratorio inicial comprobado** con candidatos SQL reales y modelos locales; integración y equivalencias técnicas pendientes |
 | 3 | Generar Excel con códigos y descripciones auxiliares | **Pendiente** |
 | 4 | Generar reporte y comprobar importación en Neodata | **Pendiente** |
 
 **Próxima tarea: etapa 1.** Definir una representación intermedia revisable de partidas, subpartidas y conceptos y probar la interpretación de distintos archivos, sin programar reglas rígidas para un solo Excel.
 
 ## Arquitectura provisional
+
+La evaluación inicial de recuperación con embeddings y de pares con TEV1 está
+documentada en [LABORATORIO.md](LABORATORIO.md). Reutiliza piezas de StoneWave
+como búsqueda independiente, sin incorporar su memoria. Los resultados son
+exploratorios: todavía no se confirman matrices automáticamente.
 
 ### Incremento de etapa 1 para revisión
 
