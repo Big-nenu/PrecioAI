@@ -140,3 +140,21 @@ Python, `openpyxl` (Excel), `pyodbc` (SQL Server). Embeddings, SQLite y StoneWav
 Se agregó `leer_presupuesto.py` como prototipo de lectura **sin modificar el archivo original**. La primera prueba se hizo con `Propuesta pepe - original.xlsx` (hojas `Conceptos` y `Resumen`), cuyo formato tiene encabezados antes de la tabla, partidas y conceptos. El lector debe preservar clave, descripción, unidad, cantidad, fila de origen y partida. `test_leer_presupuesto.py` cubre casos básicos; faltan pruebas con formatos distintos y conectar la extracción a la búsqueda en ConstruBase. No subir presupuestos privados al repositorio.
 
 **Prioridad siguiente:** validar el lector con el Excel original y revisar los conceptos extraídos antes de agregar embeddings, caché o interfaz.
+
+
+## IA local o en la nube (base inicial)
+
+El módulo `proveedor_ia.py` utiliza una API de chat compatible con OpenAI; sirve tanto para Ollama local como para un proveedor remoto compatible. No hay que cambiar la skill al cambiar de equipo.
+
+Agrega estas variables a tu archivo `.env` local:
+
+```dotenv
+PRECIOAI_AI_PROVIDER=ollama
+PRECIOAI_AI_MODEL=nombre-del-modelo-instalado
+```
+
+Para la nube, cambia `PRECIOAI_AI_PROVIDER=openai`, establece `PRECIOAI_AI_MODEL` y `PRECIOAI_AI_API_KEY`. Si usas otro servicio compatible, define también `PRECIOAI_AI_BASE_URL`. Nunca publiques claves. Para Ollama, el servicio debe estar ejecutándose localmente.
+
+Prueba la conexión con `python proveedor_ia.py --probar` y ejecuta las pruebas con `python -m unittest discover -p "test_*.py" -v`.
+
+La skill inicial está en `skills/analizar-presupuesto/SKILL.md`. **Aún no está integrada con un agente que ejecute herramientas**; la lectura flexible de Excel/PDF y la orquestación están pendientes.
