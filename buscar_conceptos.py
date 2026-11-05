@@ -7,20 +7,27 @@ import socket
 import sys
 
 
-def buscar(conexion, texto, limite=10):
+def buscar(conexion, texto, limite=10, *, tipo=None):
     """Devuelve coincidencias de la descripción completa, sin modificar la BD."""
     if not 1 <= limite <= 50:
         raise ValueError("El límite debe estar entre 1 y 50")
+    if tipo is not None and (type(tipo) is not int or not 1 <= tipo <= 5):
+        raise ValueError("Tipo de insumo inválido")
     palabras = [p for p in texto.strip().split() if p]
     if not palabras:
         raise ValueError("Indica palabras para buscar")
-    filtros = " AND ".join("DescripcionLarga LIKE ?" for _ in palabras)
-    sql = f"""SELECT TOP ({limite}) Codigo, Descripcion, DescripcionLarga, IdUnidad, IdTipo
+    descripcion = "COALESCE(NULLIF(DescripcionLarga, N''), Descripcion) COLLATE Latin1_General_100_CI_AI"
+    filtros = " AND ".join(f"{descripcion} LIKE ?" for _ in palabras)
+    parametros = [f"%{p}%" for p in palabras]
+    if tipo is not None:
+        filtros = "IdTipo = ? AND " + filtros
+        parametros.insert(0, tipo)
+    sql = f"""SELECT TOP ({limite}) IdCodigo, Codigo, Descripcion, DescripcionLarga, IdUnidad, IdTipo
 FROM dbo.PuCatalogo
 WHERE {filtros}
-ORDER BY Codigo"""
+ORDER BY Codigo, IdCodigo"""
     cursor = conexion.cursor()
-    cursor.execute(sql, *(f"%{p}%" for p in palabras))
+    cursor.execute(sql, *parametros)
     columnas = [col[0] for col in cursor.description]
     return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
 
