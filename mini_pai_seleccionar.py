@@ -43,10 +43,28 @@ def esquema(busqueda, fuentes):
             catalogo=dict(type="string", enum=[k for k in fuentes if k.startswith("KU")] if unidad else [""]+[k for k in fuentes if k.startswith("K") and not k.startswith("KU")]),
             motivo=texto)))
     return objeto(dict(seleccion_id={"anyOf": [identificador, {"type": "null"}]}, motivo=dict(type="string", minLength=30),
-        candidatos=dict(type="array", items=objeto(dict(IdCodigo=identificador,
+        candidatos=dict(type="array", minItems=len(busqueda["candidatos"]), maxItems=len(busqueda["candidatos"]), items=objeto(dict(IdCodigo=identificador,
             dictamen=dict(type="string", enum=["equivalente", "incompatible", "insuficiente"]),
             motivo=texto, cliente=cliente, catalogo=catalogo))),
         comprobaciones=dict(type="array", maxItems=7, items={"anyOf": comprobaciones})))
+
+
+def resolver_incertidumbre(evaluacion):
+    """Una compatibilidad parcial no es sustitución completa. Solo degrada a pendiente."""
+    dudas = [p for p in evaluacion["comprobaciones"] if p.get("estado") in ("insuficiente", "diferente")]
+    if not dudas:
+        return evaluacion, None
+    propuesta = deepcopy(evaluacion)
+    salida = deepcopy(evaluacion)
+    motivo = "Pendiente: la IA declara incertidumbre o diferencias en " + ", ".join(
+        p["aspecto"] for p in dudas) + ". No hay comprobación completa de sustitución; revisar los motivos por candidato y la propuesta conservada."
+    salida.update(seleccion_id=None, motivo=motivo, comprobaciones=[])
+    # Los otros candidatos llamados equivalentes tampoco tienen comprobaciones
+    # completas que permitan seleccionarlos en lugar del candidato propuesto.
+    for c in salida["candidatos"]:
+        if c["dictamen"] == "equivalente":
+            c.update(dictamen="insuficiente", motivo="Sin comprobación completa de sustitución. " + c["motivo"])
+    return salida, propuesta
 
 
 def comparar(registro, busqueda, instrucciones):
@@ -68,12 +86,42 @@ una palabra idéntica NO prueba que una actividad esté ausente. Puedes reconoce
 sinónimos y expresiones técnicas equivalentes, explicándolo como razonamiento
 semántico sustentado por los fragmentos; no como una cita inventada.
 Compara actividad principal, materiales, procedimiento, dimensiones, espesor,
-resistencia, alcance, inclusiones, exclusiones y condiciones. Diferencias importantes
-o requisitos expresos no acreditados => pendiente (seleccion_id null si ninguno sirve).
-No supongas que una inclusión omitida está cubierta; explica las omisiones relevantes.
-«Por cualquier medio» permite un procedimiento concreto compatible, no otro trabajo.
-IMPORTANTE: NO rechaces un candidato manual o con maquinaria SOLO porque el cliente
-dice «por cualquier medio»; ese texto permite ambos. Revisa las demás exigencias.
+resistencia, alcance, inclusiones, exclusiones y condiciones. Antes del dictamen,
+separa en el motivo los hallazgos de estas tres clases:
+REDACCION_EQUIVALENTE: misma función técnica acreditada con términos distintos.
+Si ambos textos describen trazo y nivelación con equipo topográfico, una cuadrilla
+de topografía acredita la función de personal técnico calificado de ese trabajo;
+establecer ejes de referencia acredita la función de localizar entre ejes. No declares
+esas expresiones incompatibles solo por no ser idénticas. Explica la correspondencia
+con referencias de ambos textos; no inventes certificaciones o prestaciones adicionales.
+Evalúa primero estas correspondencias. Una función ya acreditada semánticamente
+NO puede aparecer después en tu lista de NO_MENCIONADO. Esto no acredita estacas,
+mojoneras ni otros recursos distintos: compruébalos por separado.
+«Por cualquier medio» es permisivo: admite un método manual o con maquinaria.
+No lo registres como una diferencia de procedimiento por sí solo.
+NO_MENCIONADO: falta acreditar una prestación expresa, sin demostrar contradicción.
+No conviertas una omisión en exclusión ni la des por incluida: materiales genéricos
+no garantizan estacas/mojoneras, ni la excavación garantiza afine, traspaleos/acarreos.
+Si esa prestación es necesaria para sustituir el concepto, usa insuficiente y
+nombra exactamente lo que habría que verificar. No vuelvas insuficiente una función
+que sí está acreditada mediante una expresión técnicamente equivalente.
+RECURSOS NO SON PRESTACIONES: «mano de obra, maquinaria y equipo» no acredita
+por sí mismo afine de taludes, traspaleos, movimientos o acarreos. No justifiques
+una actividad adicional diciendo que existen recursos para realizarla. Comprueba
+el alcance completo del cliente, no solo la actividad principal. Si no hay una
+expresión de la misma actividad adicional en el catálogo, deja insuficiente:
+ser una operación habitual o necesaria no garantiza que esa matriz la incluya.
+Tampoco una lista parcial de recursos acredita los restantes: fletes, equipo o
+herramienta NO garantizan materiales de consumo expresamente pedidos. No afirmes
+«incluye los recursos necesarios» sin evidencia de esos recursos. Marca insuficiente
+si una inclusión expresa necesaria sigue sin acreditarse, aunque el procedimiento
+principal sea compatible. No confundas esa duda con una contradicción técnica.
+DIFERENCIA_REAL: especificaciones explícitas de ambos textos se contradicen y
+no permiten la sustitución. Solo entonces usa incompatible. La falta de detalle,
+un sinónimo o un procedimiento admitido NO demuestran una incompatibilidad.
+Usa equivalente solo si las exigencias técnicas están acreditadas por coincidencia
+o correspondencia semántica justificada, sin dudas necesarias ni diferencias reales.
+Si ningún candidato cumple, seleccion_id es null. No fuerces aumentar selecciones.
 No conviertas unidades, cantidades, resistencias o espesores para forzar equivalencia.
 No confundas demolición integral de edificio con un muro o piso; ni carga/acarreo
 genérico con perforaciones de pilas. Nunca iguales 5 cm a 6 cm ni resistencias distintas.
@@ -90,6 +138,11 @@ usa CU y KU del elegido, no referencias de descripción. Si no eliges, comprobac
 Es mejor dejar pendiente que afirmar una equivalencia no sustentada.
 Mantén coherencia: si seleccion_id es null, ningún dictamen puede ser equivalente;
 usa insuficiente para una opción cercana que aún requiere una comprobación.
+FORMA FINAL: cuando seleccion_id sea null, comprobaciones debe ser exactamente [].
+Las dudas de candidatos no elegidos van en sus motivos, nunca en comprobaciones.
+En el motivo de CADA candidato separa brevemente: REDACCION_EQUIVALENTE (qué sí
+coincide); NO_MENCIONADO (qué falta acreditar); DIFERENCIA_REAL (qué se contradice,
+o ninguna demostrada). No uses una lista global de faltantes que borre coincidencias.
 """), dict(role="user", content=json.dumps(contenido, ensure_ascii=False))]
     for intento in range(2):
         respuesta = consultar_ia(mensajes, esquema=esquema(busqueda, fuentes))
@@ -101,8 +154,9 @@ usa insuficiente para una opción cercana que aún requiere una comprobación.
                     if referencia != "" and referencia not in fuentes:
                         raise ValueError("Referencia de fragmento inexistente")
                     p[campo] = fuentes[referencia] if referencia else ""
+            evaluacion, propuesta = resolver_incertidumbre(evaluacion)
             validar_evaluacion_ia(registro, busqueda, evaluacion)
-            return evaluacion
+            return evaluacion, propuesta
         except (ValueError, TypeError, KeyError) as exc:
             if intento:
                 error = ValueError("Evaluación IA inválida: " + str(exc))
@@ -116,7 +170,13 @@ usa insuficiente para una opción cercana que aún requiere una comprobación.
 def seleccionar(datos, conexion):
     validar_entrada(datos, {})
     _, modelo, _ = configuracion()
-    instrucciones = (Path(__file__).parent / "skills/analizar-presupuesto/SKILL.md").read_text(encoding="utf-8")
+    skill = (Path(__file__).parent / "skills/analizar-presupuesto/SKILL.md").read_text(encoding="utf-8")
+    seccion = "## Criterio de comparación técnica (etapa 2)"
+    if seccion not in skill:
+        raise ValueError("Faltan los criterios de comparación técnica en la skill")
+    # Las instrucciones de extraer/transcribir celdas de etapa 1 no son criterios
+    # para comparar el significado de dos descripciones ya extraídas.
+    instrucciones = skill.split(seccion, 1)[1].split("\n## ", 1)[0]
     salida = deepcopy(datos)
     conceptos = {(r["hoja"], r["fila"]): r for r in salida["registros"] if r["tipo"] == "concepto"}
     vistos = set()
@@ -136,6 +196,7 @@ def seleccionar(datos, conexion):
     for b in salida.get("busquedas_construbase", []):
         r = conceptos[b["hoja"], b["fila"]]
         b.pop("evaluacion_ia", None)
+        b.pop("evaluacion_ia_propuesta", None)
         b.pop("error_ia", None)
         b.pop("respuesta_ia_rechazada", None)
         b["requiere_revision"] = True
@@ -146,7 +207,9 @@ def seleccionar(datos, conexion):
                 raise ValueError("Sin candidatos recuperados; requiere revisar búsqueda")
             for candidato in b["candidatos"]:
                 candidato_elegido(b, candidato["IdCodigo"])
-            e = comparar(r, b, instrucciones)
+            e, propuesta = comparar(r, b, instrucciones)
+            if propuesta is not None:
+                b["evaluacion_ia_propuesta"] = propuesta
             b["evaluacion_ia"] = e
             b["modelo_ia"] = modelo
             b["estado"] = "pendiente_revision_ia"

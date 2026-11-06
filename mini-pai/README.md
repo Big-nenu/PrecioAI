@@ -362,3 +362,37 @@ La comparación aislada de Nemotron, `d1:3b` y `tev1:0.8b` con los mismos 45 par
 está en [EVALUADORES.md](EVALUADORES.md). No demuestra una mejora segura al sustituir
 el modelo: identifica falsos positivos y excesos de rigor semántico. La rúbrica de
 cuatro categorías es experimental; el selector operativo y el Excel siguen intactos.
+
+## Corrección focalizada de criterios (filas 25, 26 y 28)
+
+Se mantiene Nemotron y se ajusta únicamente la comparación: distinguir redacción
+semánticamente equivalente, inclusión no mencionada y contradicción técnica real.
+La skill reconoce «cuadrilla de topografía»/«personal técnico calificado» en el
+mismo trabajo y permite maquinaria cuando se pide «por cualquier medio». No supone
+estacas, mojoneras, afine o acarreos a partir de recursos genéricos, ni materiales
+de consumo a partir de fletes/equipo. El selector recibe solo instrucciones de etapa 2.
+
+Si las propias comprobaciones del modelo declaran incertidumbre o diferencias,
+una propuesta de ID se degrada a pendiente y se conserva en evaluacion_ia_propuesta.
+Esa regla no aprueba candidatos. El esquema exige cubrir todos los candidatos ya
+requeridos por el validador; no cambia el formato de salida ni la búsqueda SQL.
+
+| Fila | Antes | Resultado focal | Motivo determinante |
+| --- | --- | --- | --- |
+| 25 | Pendiente | Pendiente | Coinciden funciones topográficas; faltan acreditar estacas/mojoneras/señalamiento |
+| 26 | Pendiente | Pendiente | Maquinaria admisible; no se acreditan afine, traspaleos y acarreos adicionales |
+| 28 | Seleccionada 10401-104 | Pendiente | Procedimiento compatible, pero los materiales de consumo pedidos no están acreditados |
+
+**Cero selecciones justificadas de estos tres casos.** Los controles de piedra frente
+a concreto armado y plantilla 6 cm frente a 3/4/5 cm no se aprobaron (diez pares).
+Pasaron 98 pruebas. La ejecución de etapa 2 usó contexto 8192 y límite 4096; se
+repitieron solo 26 y 30 con 12288/6144 por truncamiento/cobertura incompleta.
+Los resultados consolidados válidos tienen cero errores y conservan la procedencia
+por fila. No se reevaluó el resto del presupuesto, ni se abrió para escritura SQL
+ni ningún Excel. El archivo Excel previo no se regeneró y conserva sus decisiones
+anteriores; los datos nuevos de esta prueba quedan en el reporte/JSON local.
+
+La nueva regla evita aceptar propuestas que el propio modelo reconoce incompletas;
+no es un verificador semántico universal. Siguen siendo necesarias evidencias del
+alcance y recursos reales de las matrices para superar los pendientes. No se
+relajaron las guardas de materiales, espesores, resistencias o unidades.

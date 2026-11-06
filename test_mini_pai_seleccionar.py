@@ -40,8 +40,11 @@ class PruebasSeleccionIA(unittest.TestCase):
         datos=self.datos(); antes=deepcopy(datos)
         conexion=ejemplos.PruebasConfirmaciones().conexion(datos)
         with patch.object(ia,"configuracion",return_value=("local","modelo-prueba","")), patch.object(
-                ia,"consultar_ia",return_value=self.respuesta()):
+                ia,"consultar_ia",return_value=self.respuesta()) as consultar:
             salida=ia.seleccionar(datos,conexion)
+        instrucciones=consultar.call_args.args[0][0]["content"]
+        self.assertIn("REDACCION_EQUIVALENTE",instrucciones)
+        self.assertNotIn("Seleccionar celdas como evidencia",instrucciones)
         self.assertEqual(datos,antes)
         self.assertEqual(salida["resumen_ia"]["seleccionados_ia"],1)
         b=salida["busquedas_construbase"][0]
@@ -136,6 +139,37 @@ class PruebasSeleccionIA(unittest.TestCase):
         with patch.object(ia,"consultar_ia",return_value=json.dumps(respuesta)):
             with self.assertRaises(ValueError):
                 ia.comparar(datos["registros"][2],datos["busquedas_construbase"][0],"Instrucciones")
+
+    def test_compatibilidad_parcial_no_aprueba_y_preserva_propuesta(self):
+        datos=self.datos();e=self.evaluacion()
+        e["comprobaciones"][5].update(estado="insuficiente",motivo="Falta acreditar una prestación expresa")
+        antes=deepcopy(e)
+        pendiente,propuesta=ia.resolver_incertidumbre(e)
+        self.assertEqual(e,antes)
+        self.assertEqual(propuesta,antes)
+        self.assertIsNone(pendiente["seleccion_id"])
+        self.assertEqual(pendiente["candidatos"][0]["dictamen"],"insuficiente")
+        validar_evaluacion_ia(datos["registros"][2],datos["busquedas_construbase"][0],pendiente)
+        conexion=Mock()
+        with patch.object(ia,"configuracion",return_value=("local","modelo-prueba","")),patch.object(
+                ia,"consultar_ia",return_value=self.respuesta(e)):
+            salida=ia.seleccionar(datos,conexion)
+        self.assertEqual(salida["resumen_ia"]["seleccionados_ia"],0)
+        self.assertEqual(salida["resumen_ia"]["errores"],0)
+        self.assertIsNone(salida["busquedas_construbase"][0]["seleccion"])
+        self.assertEqual(salida["busquedas_construbase"][0]["evaluacion_ia_propuesta"]["seleccion_id"],10)
+        conexion.cursor.assert_not_called()
+
+    def test_resolucion_no_promueve_ni_altera_decision_completa(self):
+        e=self.evaluacion();antes=deepcopy(e)
+        resultado,propuesta=ia.resolver_incertidumbre(e)
+        self.assertEqual(resultado,antes)
+        self.assertIsNone(propuesta)
+        e.update(seleccion_id=None,comprobaciones=[])
+        e["candidatos"][0]["dictamen"]="insuficiente"
+        resultado,propuesta=ia.resolver_incertidumbre(e)
+        self.assertIsNone(resultado["seleccion_id"])
+        self.assertIsNone(propuesta)
 
     def test_paginacion_sql_parametriza_el_desplazamiento(self):
         from buscar_conceptos import buscar

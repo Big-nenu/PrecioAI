@@ -16,6 +16,36 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
    técnicamente justificadas con evidencia y verificación SQL. Reservar la revisión
    humana para diferencias, dudas o información insuficiente. Nunca modificar ConstruBase.
 
+## Criterio de comparación técnica (etapa 2)
+- Separar tres situaciones en el motivo: REDACCION_EQUIVALENTE, NO_MENCIONADO y
+  DIFERENCIA_REAL. No mezclar ausencia de información con contradicción.
+- REDACCION_EQUIVALENTE: dos expresiones acreditan la misma función técnica.
+  Si ambos textos son de trazo y nivelación con equipo topográfico, «cuadrilla de
+  topografía» acredita la función de «personal técnico calificado» de ese trabajo,
+  y establecer ejes de referencia acredita la función de localizar entre ejes.
+  No listar esas funciones como ausentes solo por la redacción.
+  Explicar la correspondencia apoyada en ambos textos, sin exigir palabras idénticas.
+- Una formulación permisiva no exige todos los procedimientos: «por cualquier
+  medio» admite un método manual o con maquinaria compatible con el resto del trabajo.
+- NO_MENCIONADO: el texto no acredita una inclusión concreta. No afirmar que está
+  excluida, ni garantizar que está incluida. Una referencia general a materiales
+  no demuestra por sí sola estacas o mojoneras, ni excavar demuestra por sí solo
+  afine de taludes, traspaleos o acarreos. Si esa prestación expresa es necesaria
+  para la sustitución y no está acreditada, dejar insuficiente y nombrar la duda.
+- Tener recursos no acredita ejecutar una prestación: «mano de obra, maquinaria
+  y equipo» no demuestra afine, traspaleos, movimientos o acarreos. La comparación
+  del alcance debe cubrir también las actividades expresas adicionales al trabajo
+  principal; no basta acreditar solo ese trabajo principal.
+- Una lista parcial de recursos tampoco acredita los que faltan: mencionar fletes,
+  equipo o herramienta no garantiza materiales de consumo expresamente solicitados.
+  No sustituir esa comprobación por «incluye los recursos necesarios».
+- DIFERENCIA_REAL: ambos textos acreditan especificaciones contradictorias que
+  impiden la sustitución, como piedra frente a concreto armado o espesores de
+  6 frente a 5 cm. No compensarlas con misma unidad, similitud o confianza.
+- Una actividad expresada semánticamente de otra manera no es una inclusión
+  omitida: justificar su correspondencia. Esto no acredita otras prestaciones,
+  materiales, certificaciones, costos o recursos que no aparecen en los textos.
+
 ## Interpretación de catálogo en Mini-PAI (etapa 1)
 - Conservar cada encabezado de agrupación como partida o subpartida, aunque no
   tenga unidad ni cantidad. Distinguirlo de portada, títulos, totales y notas.
