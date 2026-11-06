@@ -5,7 +5,41 @@ en modo lectura y añade `busquedas_construbase`. Conserva los registros origina
 sus claves, descripciones, cantidades, jerarquía, evidencia, dudas, exclusiones y
 alcance parcial. No selecciona matrices ni modifica el catálogo o el archivo de entrada.
 
-## Ejecutar
+## Preparación de consultas mediante IA (2026-11-06)
+
+El punto de entrada recomendado es ahora `mini_pai_claves.py`. Antes de consultar
+ConstruBase, Nemotron interpreta la actividad y atributos de la descripción y
+unidad originales. Los nombres de atributos son abiertos: material, resistencia,
+espesor o procedimiento son ejemplos, no columnas ni vocabulario obligatorio.
+Python recupera las citas desde IDs de fragmentos originales y comprueba valores,
+unidad y números; la cantidad del presupuesto no se envía como especificación.
+Estas comprobaciones no sustituyen una evaluación semántica de los atributos.
+
+```powershell
+python mini_pai_claves.py salidas/interpretacion.json --env .env --salida salidas/candidatos-ia.json
+```
+
+Reutiliza el proveedor y la skill existentes (`PRECIOAI_AI_PROVIDER` y
+`PRECIOAI_AI_MODEL`). No cambia el modelo configurado. Propone hasta tres consultas:
+específicas primero y una final amplia de una o dos palabras. Se ejecutan todas
+con el buscador SQL parametrizado existente, hasta 500 resultados por consulta,
+y se unen por IdCodigo. Se prioriza unidad coincidente y después la consulta
+más específica; el ranking léxico existente desempata. Se muestran cinco candidatos.
+La unidad igual sirve para recuperar candidatos, nunca para aprobar equivalencia.
+
+`interpretacion_tecnica_ia` conserva atributos, evidencia, dudas y consultas;
+`intentos`, `recuperados_unicos` y `consulta_origen` permiten auditar la recuperación.
+Un error de IA deja el concepto señalado y sin consultas: no vuelve silenciosamente
+a las dos primeras palabras. La salida es nueva y los registros originales se
+conservan íntegros. La selección técnica posterior sigue siendo un paso separado.
+
+Cada consulta todavía usa coincidencia de términos con AND/LIKE; las variantes
+son alternativas propuestas por IA. No es búsqueda semántica exhaustiva, ni una
+consulta sin resultados demuestra que no exista matriz. Puede haber diferencias
+de abreviaturas, términos o valores escritos de otra forma. No consulta composición
+ni costos y no garantiza todas las inclusiones de una matriz.
+
+## Buscador previo sin interpretación IA
 
 ```powershell
 python mini_pai_buscar.py salidas/interpretacion.json --env .env --salida salidas/candidatos.json

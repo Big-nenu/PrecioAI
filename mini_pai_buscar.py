@@ -48,10 +48,17 @@ def validar_entrada(presupuesto, terminos):
     validar_jerarquia(presupuesto["registros"])
 
 
-def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False):
+def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False, consultas=None):
     """Preserva la entrada y añade búsquedas separadas. Ningún candidato se confirma."""
     terminos = {} if terminos is None else terminos
     validar_entrada(presupuesto, terminos)
+    consultas = {} if consultas is None else consultas
+    claves = {f"{r['hoja']}:{r['fila']}" for r in presupuesto['registros'] if r['tipo']=='concepto'}
+    if (not isinstance(consultas, dict) or terminos and consultas
+            or any(k not in claves or not isinstance(v, list) or len(v)>3
+                   or any(not isinstance(t, str) or not t.strip() or len(t)>120 for t in v)
+                   for k,v in consultas.items())):
+        raise ValueError("Consultas inválidas o combinadas con términos explícitos")
     cursor = conexion.cursor()
     cursor.execute("SELECT IdUnidad, Unidad FROM dbo.PuUnidades")
     unidades = dict(cursor.fetchall())
@@ -62,23 +69,30 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False):
             continue
         identificador = f"{registro['hoja']}:{registro['fila']}"
         consulta = terminos.get(identificador, proponer_terminos(registro["descripcion"]))
+        plan = consultas.get(identificador)
+        if plan is not None:
+            consulta = plan[0] if plan else ""
         resultado = dict(hoja=registro["hoja"], fila=registro["fila"], terminos=consulta,
                          origen_terminos="indicados" if identificador in terminos else "propuesta_reglas",
                          intentos=[], candidatos=[], requiere_revision=True, seleccion=None,
                          observaciones_origen=[f"Falta {campo} en el JSON interpretado; revisar el Excel"
                              for campo in ("descripcion", "unidad", "cantidad")
                              if registro[campo] is None or not str(registro[campo]).strip()])
+        if plan is not None:
+            resultado["origen_terminos"] = "plan_ia"
         if not consulta:
             resultado["estado"] = "requiere_terminos"
             busquedas.append(resultado)
             continue
-        consultas = [consulta]
+        intentos = list(plan) if plan is not None else [consulta]
         # Si la propuesta compuesta no recupera nada, probar su primer término.
         # Los términos indicados por el usuario nunca se amplían automáticamente.
-        if identificador not in terminos and len(consulta.split()) > 1:
-            consultas.append(consulta.split()[0])
+        if plan is None and identificador not in terminos and len(consulta.split()) > 1:
+            intentos.append(consulta.split()[0])
         recuperados = []
-        for texto in consultas:
+        prioridad = {}
+        tope_alcanzado = False
+        for posicion,texto in enumerate(intentos):
             if texto not in cache:
                 cache[texto] = buscar(conexion, texto, 50, tipo=4)
                 if ampliar:
@@ -87,12 +101,19 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False):
                         cache[texto] += pagina
                         if len(pagina) < 50:
                             break
-            recuperados = cache[texto]
-            resultado["intentos"].append(dict(terminos=texto, recuperados=len(recuperados)))
-            if recuperados:
+            pagina = cache[texto]
+            resultado["intentos"].append(dict(terminos=texto, recuperados=len(pagina)))
+            if plan is not None:
+                recuperados.extend(pagina)
+                for c in pagina:
+                    prioridad.setdefault(c["IdCodigo"],posicion)
+            else:
+                recuperados = pagina
+            tope_alcanzado |= len(pagina)==(500 if ampliar else 50)
+            if recuperados and plan is None:
                 break
         resultado["recuperados"] = len(recuperados)
-        resultado["limite_sql_alcanzado"] = len(recuperados) == (500 if ampliar else 50)
+        resultado["limite_sql_alcanzado"] = tope_alcanzado
         if ampliar:
             resultado["limite_recuperacion"] = 500
         # IdCodigo identifica los conceptos; no fusionar por código o descripción.
@@ -112,6 +133,11 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False):
         # Conserva el ranking existente dentro de cada grupo. Evita que una obra
         # distinta suba solo por mencionar la actividad entre sus inclusiones.
         ordenados.sort(key=lambda c: not c["coincide_inicio_actividad"])
+        if plan is not None:
+            # La IA ordena consultas específicas primero; las amplias recuperan
+            # alternativas sin reemplazar por relevancia léxica los hallazgos específicos.
+            ordenados.sort(key=lambda c: prioridad[c["IdCodigo"]])
+            resultado["recuperados_unicos"] = len(unicos)
         if ampliar:
             # Recuperación: prioriza unidad coincidente sin afirmar equivalencia.
             unidad_cliente = normalizar(registro["unidad"] or "").strip()
@@ -124,6 +150,8 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False):
             candidato["unidad_catalogo"] = unidad
             candidato["comparacion_unidad"] = comparacion
             candidato["requiere_revision"] = True
+            if plan is not None:
+                candidato["consulta_origen"] = intentos[prioridad[candidato["IdCodigo"]]]
             candidato["advertencias"].append("Equivalencia técnica pendiente de revisión humana")
             if comparacion == "diferente":
                 candidato["advertencias"].append("Unidad distinta; no se ha comprobado conversión o compatibilidad")

@@ -396,3 +396,30 @@ La nueva regla evita aceptar propuestas que el propio modelo reconoce incompleta
 no es un verificador semántico universal. Siguen siendo necesarias evidencias del
 alcance y recursos reales de las matrices para superar los pendientes. No se
 relajaron las guardas de materiales, espesores, resistencias o unidades.
+
+
+### Preparación inteligente de la búsqueda (2026-11-06)
+
+`mini_pai_claves.py` incorpora la IA **antes** de recuperar candidatos: interpreta
+actividad y atributos técnicos abiertos, con evidencia recuperada desde fragmentos
+originales. La cantidad no se utiliza como resistencia, dimensión o espesor.
+Propone hasta tres consultas alternativas (específicas y una amplia), reutiliza la
+búsqueda SQL de solo lectura y conserva consultas, resultados y origen de candidatos.
+No exige que la descripción del catálogo copie la del cliente. La búsqueda previa
+sin IA sigue disponible; esta entrada utiliza Nemotron configurado y la skill
+existente. Uso y límites en [BUSQUEDA.md](BUSQUEDA.md).
+
+Este incremento prepara candidatos; no modifica las reglas de selección técnica,
+no acredita por sí mismo equivalencias y no altera el exportador ni los Excel
+comprobados en Neodata. No se procesó el presupuesto completo.
+
+Verificación de este incremento: **105 pruebas pasaron** y Nemotron preparó
+consultas para las filas 25, 26 y 28 sin errores de contrato. Se recuperaron
+500, 296 y 500 candidatos únicos respectivamente, mostrando cinco por fila.
+Trazo y carga alcanzaron el tope: no es recuperación exhaustiva. Las consultas
+específicas de esas dos filas todavía dieron cero; las amplias recuperaron los
+candidatos. Los cinco presentados coinciden con opciones ya conocidas: no se
+ha demostrado mejor precisión ni nuevas equivalencias aprobadas. No se ejecutó
+el selector ni se regeneró el Excel. Presupuesto, jerarquía y huellas de ambos
+Excel permanecen intactos. La siguiente comprobación es evaluar los candidatos
+sin confundir su recuperación con equivalencia técnica.

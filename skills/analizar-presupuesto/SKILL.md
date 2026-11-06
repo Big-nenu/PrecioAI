@@ -16,6 +16,21 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
    técnicamente justificadas con evidencia y verificación SQL. Reservar la revisión
    humana para diferencias, dudas o información insuficiente. Nunca modificar ConstruBase.
 
+## Interpretación técnica para búsqueda
+- Antes de consultar ConstruBase, identificar la actividad principal y los atributos
+  relevantes que realmente aparecen en la descripción/unidad. Sus nombres son
+  abiertos: no depender de columnas, vocabularios o filtros específicos de un cliente.
+- Respaldar cada atributo con una cita de su campo. Un número debe conservar su
+  contexto: resistencia, espesor, dimensión u otro significado; no convertir una
+  cantidad de presupuesto en una especificación técnica. Ausente significa desconocido.
+- Proponer consultas breves de palabras clave y variantes semánticas. Priorizar
+  las específicas con atributos explícitos y conservar una alternativa amplia
+  de actividad. No buscar la descripción completa ni exigir todas sus inclusiones.
+- Comparar la unidad por separado; no asumir que está escrita en la descripción
+  del catálogo. No inventar métodos: «por cualquier medio» no significa «manual».
+- Estas consultas recuperan candidatos a matriz base, no certifican equivalencia
+  ni garantizan inclusiones. No cambiar los códigos o descripciones originales.
+
 ## Criterio de comparación técnica (etapa 2)
 - Separar tres situaciones en el motivo: REDACCION_EQUIVALENTE, NO_MENCIONADO y
   DIFERENCIA_REAL. No mezclar ausencia de información con contradicción.
