@@ -105,3 +105,20 @@ class PruebasClavesIA(unittest.TestCase):
         r=self.registro();r['descripcion']=r['descripcion'].replace('200','2000')
         plan=self.plan();plan['atributos'][0]['evidencia']="F'C=2000 KG/CM2"
         with self.assertRaises(ValueError): claves.validar_plan(plan,r)
+
+    def test_limpieza_no_exige_comillas_ni_punto_final_y_conserva_decimales(self):
+        self.assertEqual(claves.limpiar_consulta('excavacion tipo "B" 2.00 M.'),'excavacion tipo B 2.00 M')
+        self.assertEqual(claves.limpiar_consulta('concreto 200; espesor 0,05'),'concreto 200 espesor 0,05')
+
+    def test_limpia_consultas_del_modelo_y_no_modifica_evidencia(self):
+        respuesta=self.plan();respuesta['actividad']['evidencia']='C0'
+        for a in respuesta['atributos']:
+            a['evidencia']='CU' if a.pop('campo')=='unidad' else 'C0'
+        respuesta['consultas']=['concreto "200" obra.', 'concreto']
+        with patch.object(claves,'consultar_ia',return_value=json.dumps(respuesta)):
+            plan=claves.interpretar_claves(self.registro(),'Prueba')
+        self.assertEqual(plan['consultas'],['concreto 200 obra','concreto'])
+        self.assertEqual(plan['actividad']['evidencia'],self.registro()['descripcion'])
+        respuesta['consultas']='a'
+        with patch.object(claves,'consultar_ia',return_value=json.dumps(respuesta)),self.assertRaises(ValueError):
+            claves.interpretar_claves(self.registro(),'Prueba')

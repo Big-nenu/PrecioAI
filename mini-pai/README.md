@@ -423,3 +423,30 @@ ha demostrado mejor precisión ni nuevas equivalencias aprobadas. No se ejecutó
 el selector ni se regeneró el Excel. Presupuesto, jerarquía y huellas de ambos
 Excel permanecen intactos. La siguiente comprobación es evaluar los candidatos
 sin confundir su recuperación con equivalencia técnica.
+
+
+### Consultas acotadas y nueva evaluación focal (2026-11-06)
+
+Se ajustaron las instrucciones de búsqueda para combinar actividad con un atributo
+por alternativa, terminando con palabras complementarias del trabajo principal.
+Python limpia puntuación de redacción sin modificar decimales ni evidencia.
+Los conjuntos únicos se redujeron de 500/296/500 a **62/14/29**, sin alcanzar el
+tope. Es una mejora de acotación de esta muestra, no prueba de exhaustividad.
+En carga/acarreo entró CIM-ACA-M1KM entre los cinco; sus condiciones requieren
+verificarse, por lo que no se aprobó simplemente por aparecer primero.
+
+Se compararon nuevamente las cinco opciones de cada una de las filas 25/26/28
+con Nemotron y las reglas existentes: **0 selecciones, 3 pendientes, 0 errores de
+contrato**. Trazo conserva dudas de señalamiento/estacas/mojoneras; excavación B
+conserva dudas de afine/traspaleos/acarreos; acarreo conserva inclusiones no
+acreditadas y la opción nueva limita el trabajo al primer kilómetro sin distancia
+del cliente. La búsqueda por palabras ya recupera opciones cercanas; el bloqueo
+restante es acreditar alcance real, no encontrar una descripción idéntica.
+
+Los motivos del modelo siguen requiriendo juicio: destino autorizado no demuestra
+una distancia variable, y cantidad presupuestada no acredita por sí sola el ámbito
+de un límite de superficie. Estas inferencias no provocaron selecciones. Se
+conservan las propuestas auditadas; no se relajó el selector para aprobarlas.
+Pasaron **107 pruebas**. No cambió el formato Excel, no se regeneró el archivo
+previo y no se modificaron ConstruBase ni los datos originales. Pendiente comprobar
+las inclusiones reales de las matrices antes de nuevas aprobaciones automáticas.

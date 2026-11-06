@@ -135,3 +135,20 @@ Comprobación local: se revisaron explícitamente las celdas D26, D27, D28 y D30
 presupuesto de prueba. Sus unidades estaban presentes en el Excel y omitidas en
 el JSON; se recuperaron exactamente, incluidos espacios, sin modificar cantidades.
 Esto corrige esa muestra; no garantiza que la IA complete todos los campos futuros.
+
+
+## Ajuste de precisión sobre tres filas (2026-11-06)
+
+Las instrucciones piden combinar actividad con un atributo por consulta y terminar
+con dos palabras complementarias de actividad cuando sean necesarias. Python retira
+comillas, paréntesis, separadores de redacción y puntos finales de las consultas,
+conservando decimales y evidencia original; elimina consultas duplicadas tras la
+limpieza. La descripción original y el SQL existente permanecen intactos.
+
+En la repetición con Nemotron, los resultados únicos pasaron de 500/296/500 a
+62/14/29 para trazo, excavación y acarreo. Ninguna búsqueda nueva alcanzó 500.
+No es una medición de precisión estadística: acota conjuntos de esta muestra y
+puede perder variantes que no contengan ambas palabras. Excavación con material B
+recuperó cuatro candidatos y carga/acarreo en camión recuperó 19. La nueva matriz
+CIM-ACA-M1KM apareció entre las cinco propuestas, pero su límite de primer kilómetro
+requiere contrastarse con el cliente. Recuperación no equivale a aprobación.

@@ -25,7 +25,11 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   cantidad de presupuesto en una especificación técnica. Ausente significa desconocido.
 - Proponer consultas breves de palabras clave y variantes semánticas. Priorizar
   las específicas con atributos explícitos y conservar una alternativa amplia
-  de actividad. No buscar la descripción completa ni exigir todas sus inclusiones.
+  de actividad. Combinar el núcleo de actividad con un atributo por consulta,
+  sin acumular objeto, destino e inclusiones en la misma conjunción. Evitar
+  artículos y puntuación que SQL buscaría literalmente. La alternativa amplia
+  conserva dos términos complementarios cuando la actividad los necesita.
+  No buscar la descripción completa ni exigir todas sus inclusiones.
 - Comparar la unidad por separado; no asumir que está escrita en la descripción
   del catálogo. No inventar métodos: «por cualquier medio» no significa «manual».
 - Estas consultas recuperan candidatos a matriz base, no certifican equivalencia
