@@ -51,6 +51,25 @@ def cargar_env(ruta=".env"):
             os.environ.setdefault(clave, valor)
 
 
+def conectar_sql(ruta_env=".env", *, pedir_clave=False):
+    """Abre la misma fuente SQL en modo lectura, sin registrar credenciales."""
+    import pyodbc
+    cargar_env(ruta_env)
+    servidor = os.getenv("PRECIOAI_SQL_SERVER") or rf"{socket.gethostname()}\PUWPS2022"
+    base = os.getenv("PRECIOAI_SQL_DATABASE", "CONSTRUBASE_OCTUBRE_2026")
+    usuario = os.getenv("PRECIOAI_SQL_USER", "sa")
+    clave = os.getenv("PRECIOAI_SQL_PASSWORD")
+    if not clave and pedir_clave:
+        clave = getpass.getpass("Contraseña de SQL Server: ")
+    if not clave:
+        raise ValueError("Configura PRECIOAI_SQL_PASSWORD en el entorno o en un .env local")
+    driver = os.getenv("PRECIOAI_SQL_DRIVER", "ODBC Driver 18 for SQL Server")
+    cadena = (f"DRIVER={{{driver}}};SERVER={servidor};DATABASE={base};"
+              f"UID={usuario};PWD={clave};Encrypt=yes;TrustServerCertificate=yes;"
+              "ApplicationIntent=ReadOnly;")
+    return pyodbc.connect(cadena, timeout=8, readonly=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Buscar conceptos de ConstruBase")
     parser.add_argument("texto", help="Palabras a buscar en la descripción completa")
@@ -62,17 +81,8 @@ def main():
     except ImportError:
         print("Falta pyodbc. Instala con: python -m pip install pyodbc", file=sys.stderr)
         return 1
-    cargar_env()
-    servidor = os.getenv("PRECIOAI_SQL_SERVER") or rf"{socket.gethostname()}\PUWPS2022"
-    base = os.getenv("PRECIOAI_SQL_DATABASE", "CONSTRUBASE_OCTUBRE_2026")
-    usuario = os.getenv("PRECIOAI_SQL_USER", "sa")
-    clave = os.getenv("PRECIOAI_SQL_PASSWORD") or getpass.getpass("Contraseña de SQL Server: ")
-    driver = os.getenv("PRECIOAI_SQL_DRIVER", "ODBC Driver 18 for SQL Server")
-    cadena = (f"DRIVER={{{driver}}};SERVER={servidor};DATABASE={base};"
-              f"UID={usuario};PWD={clave};Encrypt=yes;TrustServerCertificate=yes;"
-              "ApplicationIntent=ReadOnly;")
     try:
-        with pyodbc.connect(cadena, timeout=8) as conexion:
+        with conectar_sql(pedir_clave=True) as conexion:
             datos = buscar(conexion, args.texto, args.limite)
         if args.ordenar:
             from ranking_conceptos import ordenar_candidatos
