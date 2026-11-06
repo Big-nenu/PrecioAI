@@ -152,3 +152,14 @@ puede perder variantes que no contengan ambas palabras. Excavación con material
 recuperó cuatro candidatos y carga/acarreo en camión recuperó 19. La nueva matriz
 CIM-ACA-M1KM apareció entre las cinco propuestas, pero su límite de primer kilómetro
 requiere contrastarse con el cliente. Recuperación no equivale a aprobación.
+
+
+## Revisión con el usuario y entrega
+
+Tras comparar, `mini_pai_revision.py` prepara hasta tres opciones admisibles por
+concepto y la alternativa 4 de conservar el original sin matriz. No responde por
+el usuario. La elección se registra con `mini_pai_confirmar.py` (IdCodigo real o
+null), y `mini_pai_exportar.py --final` entrega Excel más Markdown. Una búsqueda
+válida vacía conserva código/descripción del cliente en principales y auxiliares;
+un fallo no equivale a búsqueda vacía. Códigos ausentes se solicitan antes del final.
+Ver formatos de respuestas y comandos en [README.md](README.md#flujo-vigente-con-revisión-del-usuario-2026-11-06).

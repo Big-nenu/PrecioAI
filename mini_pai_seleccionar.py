@@ -186,11 +186,11 @@ def seleccionar(datos, conexion):
             raise ValueError("Búsqueda duplicada o ajena al presupuesto")
         vistos.add(identidad)
         seleccion_validada(conceptos[identidad], b)
-        if b.get("seleccion") is not None:
+        if b.get("seleccion") is not None or b.get("sin_matriz") is not None:
             raise ValueError("No se reemplazan selecciones existentes; utilizar una búsqueda sin seleccionar")
     if vistos != set(conceptos):
         raise ValueError("Cada concepto requiere su búsqueda previa")
-    resumen = dict(conceptos=len(conceptos), seleccionados_ia=0, pendientes=0, errores=0, modelo=modelo)
+    resumen = dict(conceptos=len(conceptos), seleccionados_ia=0, sin_candidatos=0, pendientes=0, errores=0, modelo=modelo)
     resumen["ollama_num_ctx"] = os.getenv("PRECIOAI_OLLAMA_NUM_CTX")
     resumen["ollama_think"] = os.getenv("PRECIOAI_OLLAMA_THINK")
     for b in salida.get("busquedas_construbase", []):
@@ -203,6 +203,10 @@ def seleccionar(datos, conexion):
         inicio = time.monotonic()
         print(f"Comparando {b['hoja']}:{b['fila']} ({len(b['candidatos'])} candidatos)", flush=True)
         try:
+            if not b["candidatos"] and b.get("estado") == "sin_candidatos_en_busqueda":
+                b["requiere_revision"] = False
+                resumen['sin_candidatos'] += 1
+                continue  # Sin resultados no es un fallo de IA; conservar original en exportación final.
             if not b["candidatos"]:
                 raise ValueError("Sin candidatos recuperados; requiere revisar búsqueda")
             for candidato in b["candidatos"]:
@@ -235,7 +239,7 @@ def seleccionar(datos, conexion):
         b["segundos_ia"] = round(time.monotonic() - inicio, 3)
         print(f"Resultado {b['fila']}: {b['estado']} ({b['segundos_ia']} s)" +
               (": " + b["error_ia"] if b.get("error_ia") else ""), flush=True)
-    resumen["pendientes"] = len(conceptos) - resumen["seleccionados_ia"]
+    resumen["pendientes"] = len(conceptos) - resumen["seleccionados_ia"] - resumen['sin_candidatos']
     salida["resumen_ia"] = resumen
     return salida
 

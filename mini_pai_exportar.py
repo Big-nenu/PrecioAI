@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 
 from mini_pai_buscar import validar_entrada
 from mini_pai_confirmar import seleccion_validada
+from mini_pai_revision import resolver, reporte, indice
 
 
 COLUMNAS = ("Partida", "Código", "Código auxiliar", "Descripción completa",
@@ -49,9 +50,10 @@ def escribir(hoja, valores):
     return fila
 
 
-def crear_excel(datos):
+def crear_excel(datos, *, final=False):
     """No usa SQL ni IA: exporta el JSON revisable del PR #3 sin modificarlo."""
     validar_entrada(datos, {})
+    indice(datos)  # Valida también las decisiones explícitas de conservar originales.
     if any(r["clave"] is not None and not isinstance(r["clave"], str) for r in datos["registros"]):
         raise ValueError("Las claves deben conservar el texto original")
     conceptos = {(r["hoja"], r["fila"]) for r in datos["registros"] if r["tipo"] == "concepto"}
@@ -148,8 +150,21 @@ def crear_excel(datos):
             cantidad = cantidad_excel(r["cantidad"])
             if isinstance(cantidad, str):
                 observaciones.append("Cantidad conservada como texto; revisar formato numérico")
-            valores = [ruta, catalogo_sql["Codigo"] if catalogo_sql else None, r["clave"],
-                       catalogo_sql["DescripcionLarga"] if catalogo_sql else None, r["descripcion"],
+            codigo_salida = catalogo_sql["Codigo"] if catalogo_sql else None
+            descripcion_salida = catalogo_sql["DescripcionLarga"] if catalogo_sql else None
+            auxiliar = r["clave"]
+            if final or (b and b.get("sin_matriz")):
+                codigo_salida, descripcion_salida, categoria = resolver(r, b)
+                if not catalogo_sql:
+                    estado_revision = categoria
+                    if not auxiliar or not auxiliar.strip():
+                        auxiliar = codigo_salida  # Código proporcionado por el usuario, original intacto.
+                    if b.get("sin_matriz"):
+                        observaciones.append("Decisión: " + b["sin_matriz"]["motivo"])
+            if final and (not ruta or not descripcion_salida or not descripcion_salida.strip()):
+                raise ValueError(f"{hoja}:{fila}: faltan Partida o Descripción completa para el Excel final")
+            valores = [ruta, codigo_salida, auxiliar,
+                       descripcion_salida, r["descripcion"],
                        catalogo_sql["unidad_catalogo"] if catalogo_sql else r["unidad"], cantidad, 4]
             if catalogo_sql and len(catalogo_sql["Codigo"]) > 20:
                 observaciones.append("Código de ConstruBase supera 20 caracteres; no se recortó")
@@ -157,12 +172,13 @@ def crear_excel(datos):
         # Seis columnas del manual; el nombre de un encabezado va en descripción auxiliar.
         escribir(copiar, [valores[0], valores[1], valores[2],
                           valores[4] if tipo == "concepto" else valores[3], valores[5], valores[6]])
+        manual = b.get('sin_matriz') if tipo == 'concepto' and b else None
         escribir(revision, [hoja, fila, numero, tipo, r.get("padre", padre), r["partida"],
                             r["subpartida"], estado_revision, r["cantidad"],
                             "; ".join(observaciones), json.dumps(r.get("evidencia", {}), ensure_ascii=False),
                             r["unidad"], catalogo_sql["IdCodigo"] if catalogo_sql else None,
-                            seleccion["revisor"] if seleccion else None,
-                            seleccion["motivo"] if seleccion else (b.get("evaluacion_ia", {}).get("motivo") if tipo == "concepto" and b else None),
+                            seleccion["revisor"] if seleccion else (manual['revisor'] if manual else None),
+                            seleccion["motivo"] if seleccion else (manual['motivo'] if manual else (b.get("evaluacion_ia", {}).get("motivo") if tipo == "concepto" and b else None)),
                             seleccion["verificado_utc"] if seleccion else None])
         for h in (catalogo, copiar):
             if tipo != "concepto":
@@ -201,6 +217,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("presupuesto", help="JSON interpretado, opcionalmente con búsquedas")
     parser.add_argument("--salida", required=True, help="Archivo .xlsx nuevo")
+    parser.add_argument("--final", action="store_true", help="Exige decisiones resueltas y códigos; conserva cliente cuando no hay matriz")
     args = parser.parse_args()
     origen, destino = Path(args.presupuesto), Path(args.salida)
     if destino.suffix.lower() != ".xlsx":
@@ -208,7 +225,12 @@ def main():
     # Una salida nueva impide reemplazar el Excel original o cualquier otro archivo.
     if destino.exists() or destino.is_symlink() or origen.resolve() == destino.resolve():
         parser.error("La salida debe ser un archivo nuevo; no se sobrescriben entradas ni resultados")
-    libro = crear_excel(json.loads(origen.read_text(encoding="utf-8")))
+    informe = destino.with_suffix(".md")
+    if informe.exists() or informe.is_symlink() or informe.resolve() == origen.resolve():
+        parser.error("El reporte .md también debe ser nuevo y distinto de la entrada")
+    datos = json.loads(origen.read_text(encoding="utf-8"))
+    contenido = reporte(datos, final=args.final)
+    libro = crear_excel(datos, final=args.final)
     confirmadas = libro["Revisión"]["D1"].value
     destino.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -216,7 +238,9 @@ def main():
             libro.save(archivo)
     finally:
         libro.close()
-    print(f"Excel de revisión generado; {confirmadas} selecciones verificadas (origen IA/humano en Revisión)")
+    with informe.open("x", encoding="utf-8") as archivo:
+        archivo.write(contenido)
+    print(f"Excel y reporte generados; {confirmadas} selecciones verificadas (origen IA/humano en Revisión)")
 
 
 if __name__ == "__main__":

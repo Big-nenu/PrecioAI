@@ -1,5 +1,6 @@
 """Registra decisiones humanas explícitas sobre candidatos verificados en SQL (solo lectura)."""
 import argparse
+from contextlib import nullcontext
 from copy import deepcopy
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -147,8 +148,24 @@ def seleccion_validada(registro, busqueda):
     return seleccion["catalogo"]
 
 
+def sin_matriz_validada(registro, busqueda):
+    decision = busqueda.get("sin_matriz")
+    if decision is None:
+        return None
+    campos = {"revisor", "motivo", "concepto_sha256", "codigo", "registrado_utc"}
+    if (not isinstance(decision, dict) or set(decision) != campos
+            or busqueda.get("seleccion") is not None
+            or any(not isinstance(decision[k], str) or not decision[k].strip() for k in campos)
+            or decision["concepto_sha256"] != huella(registro)
+            or (registro["clave"] and registro["clave"].strip() and decision["codigo"] != registro["clave"])):
+        raise ValueError("Decisión sin matriz inválida o concepto modificado; revisar nuevamente")
+    return decision
+
+
 def preparar(datos, decisiones):
     validar_entrada(datos, {})
+    if any(r['clave'] is not None and not isinstance(r['clave'], str) for r in datos['registros']):
+        raise ValueError('Las claves deben conservar texto del cliente')
     conceptos = {(r["hoja"], r["fila"]): r for r in datos["registros"] if r["tipo"] == "concepto"}
     busquedas = {}
     for b in datos.get("busquedas_construbase", []):
@@ -156,12 +173,14 @@ def preparar(datos, decisiones):
         if identidad not in conceptos or identidad in busquedas:
             raise ValueError("Búsqueda duplicada o ajena a los conceptos")
         seleccion_validada(conceptos[identidad], b)
+        sin_matriz_validada(conceptos[identidad], b)
         busquedas[identidad] = b
     if not isinstance(decisiones, list) or not decisiones:
         raise ValueError("Se requiere una lista no vacía de decisiones humanas")
     vistos, preparados = set(), []
     for d in decisiones:
-        if (not isinstance(d, dict) or set(d) != {"hoja", "fila", "IdCodigo", "revisor", "motivo"}
+        if (not isinstance(d, dict) or set(d) not in ({"hoja", "fila", "IdCodigo", "revisor", "motivo"},
+                                               {"hoja", "fila", "IdCodigo", "revisor", "motivo", "codigo"})
                 or not isinstance(d["hoja"], str) or type(d["fila"]) is not int
                 or any(not isinstance(d[c], str) or not d[c].strip() for c in ("revisor", "motivo"))):
             raise ValueError("Cada decisión requiere hoja, fila, IdCodigo, revisor y motivo técnico")
@@ -170,8 +189,18 @@ def preparar(datos, decisiones):
             raise ValueError("Decisión duplicada o sin búsqueda de origen")
         vistos.add(identidad)
         b = busquedas[identidad]
-        if b.get("seleccion") is not None:
+        if b.get("seleccion") is not None or b.get("sin_matriz") is not None:
             raise ValueError("Ya existe una selección; no se reemplaza silenciosamente")
+        if d["IdCodigo"] is None:
+            registro = conceptos[identidad]
+            codigo = registro["clave"] if registro["clave"] and registro["clave"].strip() else d.get("codigo")
+            if (not isinstance(codigo, str) or not codigo.strip()
+                    or ("codigo" in d and d["codigo"] != codigo)):
+                raise ValueError("Falta código del cliente: solicitar uno al usuario sin modificar el original")
+            preparados.append((d, registro, None))
+            continue
+        if "codigo" in d:
+            raise ValueError("No se puede alterar el código del cliente al seleccionar una matriz")
         candidato = candidato_elegido(b, d["IdCodigo"])
         validar_unidad(conceptos[identidad], candidato)
         preparados.append((d, conceptos[identidad], candidato))
@@ -197,6 +226,15 @@ def confirmar(datos, decisiones, conexion):
     salida = deepcopy(datos)
     busquedas = {(b["hoja"], b["fila"]): b for b in salida["busquedas_construbase"]}
     for decision, registro, candidato in preparados:
+        if candidato is None:
+            b = busquedas[decision["hoja"], decision["fila"]]
+            codigo = registro["clave"] if registro["clave"] and registro["clave"].strip() else decision["codigo"]
+            b["sin_matriz"] = dict(revisor=decision["revisor"], motivo=decision["motivo"],
+                concepto_sha256=huella(registro), codigo=codigo,
+                registrado_utc=datetime.now(timezone.utc).isoformat())
+            sin_matriz_validada(registro, b)
+            b.update(estado="sin_matriz_por_usuario", requiere_revision=False)
+            continue
         actual = consultar_candidato(conexion, decision["IdCodigo"])
         if actual != {c: candidato[c] for c in CAMPOS_SQL}:
             raise ValueError("ConstruBase difiere de la búsqueda guardada; volver a buscar y revisar")
@@ -227,12 +265,12 @@ def main():
     datos = json.loads(Path(args.presupuesto).read_text(encoding="utf-8"))
     decisiones = json.loads(Path(args.decisiones).read_text(encoding="utf-8"))
     preparar(datos, decisiones)  # Antes de abrir SQL, también en el CLI.
-    with conectar_sql(ruta_env) as conexion:
+    with (conectar_sql(ruta_env) if any(d['IdCodigo'] is not None for d in decisiones) else nullcontext(None)) as conexion:
         salida = confirmar(datos, decisiones, conexion)
     destino.parent.mkdir(parents=True, exist_ok=True)
     with destino.open("x", encoding="utf-8") as archivo:
         json.dump(salida, archivo, ensure_ascii=False, indent=2, allow_nan=False)
-    print(f"{len(decisiones)} decisiones humanas verificadas en SQL; ninguna selección automática")
+    print(f"{len(decisiones)} decisiones humanas registradas; matrices elegidas verificadas en SQL")
 
 
 if __name__ == "__main__":

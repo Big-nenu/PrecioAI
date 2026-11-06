@@ -185,8 +185,13 @@ ni automatiza la importación. El primer exportador `mini_pai_exportar.py` gener
 una hoja de ocho columnas según el ejemplo aportado (añade Descripción completa
 y Tipo), una vista de las seis columnas anteriores y un reporte. La descripción
 completa de una matriz confirmada debe conservarse íntegra y separada de la auxiliar.
-Sin confirmación, los campos de ConstruBase quedan vacíos y los originales permanecen
-en los auxiliares. `mini_pai_confirmar.py` registra decisiones humanas explícitas con
+En borradores pendientes, los campos principales siguen vacíos. En la entrega final,
+si no hay candidatos o el usuario elige «Conservar concepto original — sin matriz»,
+Código y Descripción completa usan los datos del cliente y los repiten en los auxiliares.
+Si falta su código, se solicita al usuario antes de exportar. Los casos dudosos ofrecen
+hasta tres opciones y esa cuarta alternativa. Cada Excel lleva un reporte Markdown
+que separa sin candidatos, conservación manual y matrices seleccionadas.
+`mini_pai_confirmar.py` registra decisiones humanas explícitas con
 revisor, motivo técnico y verificación SQL de solo lectura; el exportador usa el código,
 la descripción íntegra y la unidad de esas selecciones, conservando la cantidad del cliente. Reutiliza `openpyxl`,
 sin SQL ni IA para exportar. Ver [mini-pai/README.md](mini-pai/README.md).
