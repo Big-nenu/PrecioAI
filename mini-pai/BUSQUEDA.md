@@ -49,8 +49,9 @@ a conceptos existentes; no se agrupan conceptos por la clave del cliente.
   candidatos; no prueba que el catálogo completo carezca de una equivalencia.
 - `requiere_terminos` identifica conceptos sin descripción o términos utilizables.
 
-Todavía no hay «buscar más», confirmación persistente, recuperación de matrices,
-costos o exportación. No se aplican embeddings ni un modelo de decisiones en este
+Todavía no hay «buscar más», confirmación persistente, recuperación de matrices
+ni costos. La exportación inicial de revisión, sin selecciones confirmadas, está
+documentada en [README.md](README.md#primer-excel-de-revisión-2026-11-06). No se aplican embeddings ni un modelo de decisiones en este
 paso. El laboratorio sigue disponible como experimento independiente.
 
 ## Comprobación parcial (2026-11-06)

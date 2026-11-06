@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Primera herramienta independiente dentro del repositorio PrecioAI. Convertir presupuestos de construcción recibidos en Excel, con estructuras variables o desordenadas, a un Excel que pueda copiarse/importarse en Neodata PU Win+. Resolver primero esta necesidad práctica y reutilizar después las herramientas en PrecioAI.
+Primera herramienta independiente dentro del repositorio PrecioAI. Convertir presupuestos de construcción recibidos en Excel, con estructuras variables o desordenadas, a un archivo `.xlsx` revisable para copiar manualmente sus conceptos a Neodata PU Win+. El usuario realiza esa operación. Mini-PAI no controla Neodata, no se conecta a su interfaz ni automatiza la importación. Resolver primero esta necesidad práctica y reutilizar después las herramientas en PrecioAI.
 
 **Alcance de esta etapa:** transformar catálogos de conceptos y conservar partidas, subpartidas, códigos, descripciones, unidades y cantidades. No generar todavía matrices nuevas ni construir la plataforma web.
 
@@ -12,11 +12,11 @@ Primera herramienta independiente dentro del repositorio PrecioAI. Convertir pre
 2. La IA identifica partidas, subpartidas y conceptos; extrae código, descripción, unidad y cantidad sin perder la relación con el archivo original. Las ambigüedades se reportan, no se inventan.
 3. Para cada concepto, identifica palabras clave y atributos técnicos y consulta ConstruBase **en modo lectura**. Una coincidencia de palabras no demuestra equivalencia técnica; comparar también unidad, alcance y condiciones.
 4. Si se encuentra una equivalencia técnicamente válida, utilizar el **Código** del concepto de ConstruBase y conservar en **Código auxiliar** la clave original del cliente. Mantener la descripción propia del concepto de ConstruBase y la descripción original en **Descripción auxiliar**.
-5. Si no se encuentra equivalencia, conservar los datos originales en los campos principales y auxiliares, señalando el caso en el reporte. No inventar códigos, descripciones ni coincidencias. Resolver o marcar conflictos cuando un mismo código principal corresponda a descripciones diferentes.
+5. Si no se ha confirmado una equivalencia, conservar código y descripción completos del cliente en los auxiliares, así como unidad y cantidad originales. Dejar vacíos los campos de ConstruBase y señalar el caso en el reporte. No inventar códigos, descripciones ni coincidencias. Resolver o marcar conflictos cuando un mismo código principal corresponda a descripciones diferentes.
 6. Generar el Excel con la estructura de partidas/subpartidas y un reporte de conceptos encontrados, no encontrados y dudosos.
-7. Validar el resultado copiándolo/importándolo realmente en Neodata PU Win+.
+7. El usuario revisa el archivo y realiza el copiado manual a Neodata PU Win+. La comprobación manual del resultado no requiere desarrollar automatización de Neodata.
 
-**Importante:** en Mini-PAI aún hay que decidir cómo confirmar coincidencias dudosas antes de reutilizar un concepto de ConstruBase. No asumir selección automática confiable.
+**Importante:** la confirmación de equivalencias y su exportación están pendientes. El primer exportador solo genera conceptos sin selección confirmada; rechaza selecciones no nulas para no tratarlas como válidas ni descartarlas silenciosamente.
 
 ## Formato de salida de referencia
 
@@ -25,6 +25,10 @@ El *Manual PUWIN+*, páginas 246 y 458, describe el uso de códigos auxiliares y
 ```text
 Partida | Código | Código auxiliar | Descripción auxiliar | Unidad | Cantidad
 ```
+
+El ejemplo privado `CATÁLOGO DE CONCEPTOS PARA ANALISIS DE MAESTRO.xls`, hojas PLANTILLA y EJEMPLO, usa **ocho columnas**: `Partida | Código | Código auxiliar | Descripción completa | Descripción auxiliar | Unidad | Cantidad | Tipo`. Es la referencia principal para la hoja Catálogo. Descripción completa corresponde al concepto de ConstruBase cuando exista una selección confirmada; nunca debe sustituirse por la descripción auxiliar del cliente. Los nombres de los encabezados de partida van en Descripción completa, como en el ejemplo.
+
+El formato de seis columnas se conserva en la hoja Copiar auxiliares. No se debe copiar indistintamente la tabla de ocho columnas como si fuese la de seis. El manual (pp. 246–247 y 456–458) describe los campos completos, auxiliares y rutas de partidas separadas por punto; no demuestra por sí solo el comportamiento de pegado del ejemplo de ocho columnas.
 
 El Código auxiliar admite **hasta 20 caracteres** según el manual. El código principal identifica el concepto interno; el auxiliar permite conservar el código de la licitación o cliente sin duplicar conceptos prácticamente iguales. La descripción auxiliar conserva el texto del cliente.
 
@@ -35,14 +39,60 @@ El Código auxiliar admite **hasta 20 caracteres** según el manual. El código 
 | Etapa | Tarea | Estado |
 | --- | --- | --- |
 | 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; falta integrar IA y evaluar equivalencias |
-| 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; un bloque real validado, libro completo pendiente |
+| 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; tres bloques reales validados, libro completo pendiente |
 | 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Búsqueda inicial conectada** al JSON interpretado, con candidatos SQL revisables; equivalencias técnicas y selección pendientes |
-| 3 | Generar Excel con códigos y descripciones auxiliares | **Pendiente** |
-| 4 | Generar reporte y comprobar importación en Neodata | **Pendiente** |
+| 3 | Generar Excel con códigos y descripciones auxiliares | **Primer Excel de revisión disponible**: ejemplo de ocho columnas, vista auxiliar de seis y reporte; selecciones confirmadas pendientes |
+| 4 | Reporte y comprobación manual por el usuario en Neodata | **Reporte inicial disponible**; comprobación manual pendiente, sin automatizar Neodata |
 
 **Avance actual:** representación intermedia y búsqueda SQL de candidatos comprobadas
 con una parte de un presupuesto real. Revisar los campos incompletos y los candidatos
 antes de confirmar equivalencias; siguen pendientes el libro completo y otros formatos.
+
+## Primer Excel de revisión (2026-11-06)
+
+Faltaba transformar el JSON ya interpretado y buscado en un libro, manteniendo
+separados los campos de ConstruBase y del cliente. `mini_pai_exportar.py` reutiliza
+la validación existente y `openpyxl`; no requiere SQL, IA ni dependencias nuevas.
+
+```powershell
+python mini_pai_exportar.py salidas/candidatos.json --salida salidas/revision.xlsx
+```
+
+La salida debe ser nueva: no sobrescribe archivos. También admite el JSON de
+interpretación sin búsquedas, cuyos conceptos quedan Sin evaluar.
+
+- **Catálogo:** las ocho columnas del ejemplo. Conserva las filas de partidas y
+  subpartidas. Sin selección confirmada, Código y Descripción completa quedan
+  vacíos en los conceptos; los auxiliares conservan los textos completos del
+  cliente. Unidad y Cantidad son las originales, Tipo es 4 para los conceptos.
+- **Copiar auxiliares:** las seis columnas del manual, en su orden. En encabezados,
+  el nombre del grupo va en Descripción auxiliar. Sin filas vacías de separación.
+- **Revisión:** alcance parcial, cero confirmadas, hoja/fila de origen, padre,
+  claves de agrupación originales, cantidad original como texto, evidencia y
+  observaciones. Distingue Dudosa (hay candidatos sin confirmar), No encontrada
+  en esta búsqueda y Sin evaluar. No encontrada no prueba ausencia en el catálogo.
+
+Las rutas respetan los padres por hoja/fila: si la subpartida ya contiene el prefijo
+original, no lo duplica; si no, une los niveles por punto como en el manual. Sin
+clave utiliza el nombre original. No agrega códigos ni agrupadores ficticios.
+Rutas repetidas o sin partida se señalan para revisión, conservando todos los
+registros. Los códigos permanecen como texto, incluidos ceros iniciales.
+Las cantidades decimales inequívocas se guardan numéricamente; las ambiguas o de
+precisión no representable se conservan como texto y se señalan. No hay conversiones
+de unidades. Se advierten auxiliares mayores de 20 caracteres sin recortarlos y se
+rechazan textos que excedan el límite de una celda, sin truncarlos.
+
+**Comprobación:** primera salida real limitada a los nueve conceptos ya interpretados,
+una partida y tres subpartidas, con las cuatro unidades completadas del PR #3.
+Ninguna equivalencia fue confirmada. El libro original y ConstruBase permanecen
+intactos; el exportador ni siquiera abre SQL ni el Excel original.
+
+**Pendiente para la salida final:** revisar la estructura con el usuario, completar
+la interpretación del libro, confirmar equivalencias técnicas y recuperar el código,
+la descripción íntegra y la unidad validada de cada selección. Las diferencias de
+unidad deberán señalarse sin convertir la cantidad original automáticamente.
+Comprobar manualmente el copiado en Neodata y resolver conflictos de códigos.
+Este archivo es una revisión parcial, no una declaración de compatibilidad de pegado.
 
 ## Arquitectura provisional
 
@@ -133,7 +183,7 @@ incorrecta o seleccionar celdas/tipos equivocados. Revisar también `excluidas`.
 El contrato actual admite dos niveles de agrupación; los niveles adicionales
 deben reportarse como duda. Sigue pendiente validar el presupuesto completo y
 diversos formatos con este procesamiento por bloques.
-Todavía no hay agente con llamadas autónomas a herramientas ni exportación.
+Todavía no hay agente con llamadas autónomas a herramientas. La exportación inicial de revisión está disponible; no confirma equivalencias.
 
 Se contempla una **skill** especializada (instrucciones para la IA) y herramientas concretas para inspeccionar Excel, consultar ConstruBase y generar el archivo de salida. La carpeta `references/` podría guardar reglas y documentación de Neodata; `scripts/` contendría funciones ejecutables. **Esta estructura aún es una propuesta, no está implementada.** Se busca mantener el sistema utilizable con distintos modelos de IA, sin depender de uno específico.
 

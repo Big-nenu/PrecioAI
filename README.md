@@ -167,7 +167,7 @@ Para aprovechar un análisis existente de ConstruBase sin duplicarlo por diferen
 - **Código auxiliar:** clave original solicitada por el cliente o la dependencia (en PU Win+ admite hasta 20 caracteres).
 - **Descripción del concepto:** descripción propia del análisis de referencia.
 - **Descripción auxiliar:** descripción o especificaciones originales del concepto en el presupuesto del cliente.
-- **Unidad y cantidad:** datos del presupuesto importado, conservados para revisión.
+- **Unidad y cantidad:** conservar los datos originales del cliente; al confirmar una matriz, usar su unidad validada, señalar diferencias y conservar siempre la cantidad original sin conversión automática.
 
 **Regla funcional:** al seleccionar una matriz compatible, mantener la referencia a su código y análisis internos y conservar por separado el código y la descripción originales del cliente. No crear un análisis nuevo solo para cambiar su código o redacción. Si la compatibilidad técnica no es suficiente, no reutilizar la matriz automáticamente: la selección sigue siendo del usuario. ConstruBase permanece sin modificaciones.
 
@@ -179,4 +179,14 @@ Partida | Código | Código auxiliar | Descripción auxiliar | Unidad | Cantidad
 
 El manual indica que este formato permite utilizar códigos y descripciones del archivo maestro y de la dependencia sin perder los originales; al imprimir, puede elegirse el código auxiliar para presentar la propuesta con la información del cliente.
 
-**Aplicación prevista en PrecioAI:** producir una salida Excel compatible con este esquema, manteniendo trazabilidad entre concepto importado y análisis seleccionado. **Pendiente:** validar el formato y su importación con un ejemplo real; no está implementada todavía esta exportación.
+**Mini-PAI (2026-11-06):** el objetivo inmediato es generar un `.xlsx` revisable para
+que el usuario copie manualmente los conceptos a Neodata. No controla su interfaz
+ni automatiza la importación. El primer exportador `mini_pai_exportar.py` genera
+una hoja de ocho columnas según el ejemplo aportado (añade Descripción completa
+y Tipo), una vista de las seis columnas anteriores y un reporte. La descripción
+completa de una matriz confirmada debe conservarse íntegra y separada de la auxiliar.
+En este incremento no se exportan selecciones confirmadas: los campos de ConstruBase
+quedan vacíos y los originales permanecen en los auxiliares. Reutiliza `openpyxl`,
+sin SQL ni IA para exportar. Ver [mini-pai/README.md](mini-pai/README.md).
+**Pendiente:** confirmar equivalencias, completar el presupuesto y comprobar el
+copiado manual en Neodata; no se afirma compatibilidad de pegado ya validada.
