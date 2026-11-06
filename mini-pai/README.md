@@ -16,7 +16,7 @@ Primera herramienta independiente dentro del repositorio PrecioAI. Convertir pre
 6. Generar el Excel con la estructura de partidas/subpartidas y un reporte de conceptos encontrados, no encontrados y dudosos.
 7. El usuario revisa el archivo y realiza el copiado manual a Neodata PU Win+. La comprobación manual del resultado no requiere desarrollar automatización de Neodata.
 
-**Importante:** la confirmación de equivalencias y su exportación están pendientes. El primer exportador solo genera conceptos sin selección confirmada; rechaza selecciones no nulas para no tratarlas como válidas ni descartarlas silenciosamente.
+**Importante:** las equivalencias se confirman mediante una decisión humana explícita, con revisor y motivo técnico. `mini_pai_confirmar.py` comprueba el candidato en SQL antes de registrarla. El ranking no confirma equivalencias; las selecciones antiguas sin auditoría se rechazan.
 
 ## Formato de salida de referencia
 
@@ -40,8 +40,8 @@ El Código auxiliar admite **hasta 20 caracteres** según el manual. El código 
 | --- | --- | --- |
 | 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; falta integrar IA y evaluar equivalencias |
 | 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; tres bloques reales validados, libro completo pendiente |
-| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Búsqueda inicial conectada** al JSON interpretado, con candidatos SQL revisables; equivalencias técnicas y selección pendientes |
-| 3 | Generar Excel con códigos y descripciones auxiliares | **Primer Excel de revisión disponible**: ejemplo de ocho columnas, vista auxiliar de seis y reporte; selecciones confirmadas pendientes |
+| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Búsqueda inicial conectada** al JSON interpretado, con candidatos SQL revisables; compatibilidad técnica pendiente de revisión humana; confirmación explícita disponible |
+| 3 | Generar Excel con códigos y descripciones auxiliares | **Primer Excel de revisión disponible**: ejemplo de ocho columnas, vista auxiliar de seis y reporte; exporta confirmaciones explícitas verificadas en SQL |
 | 4 | Reporte y comprobación manual por el usuario en Neodata | **Reporte inicial disponible**; comprobación manual pendiente, sin automatizar Neodata |
 
 **Avance actual:** representación intermedia y búsqueda SQL de candidatos comprobadas
@@ -64,13 +64,17 @@ interpretación sin búsquedas, cuyos conceptos quedan Sin evaluar.
 - **Catálogo:** las ocho columnas del ejemplo. Conserva las filas de partidas y
   subpartidas. Sin selección confirmada, Código y Descripción completa quedan
   vacíos en los conceptos; los auxiliares conservan los textos completos del
-  cliente. Unidad y Cantidad son las originales, Tipo es 4 para los conceptos.
+  cliente. Con confirmación, Código y Descripción completa son los textos íntegros
+  de ConstruBase y Unidad es la del catálogo. La cantidad del cliente nunca se
+  convierte. Tipo es 4 para los conceptos.
 - **Copiar auxiliares:** las seis columnas del manual, en su orden. En encabezados,
   el nombre del grupo va en Descripción auxiliar. Sin filas vacías de separación.
-- **Revisión:** alcance parcial, cero confirmadas, hoja/fila de origen, padre,
+- **Revisión:** alcance parcial, número de confirmadas, hoja/fila de origen, padre,
   claves de agrupación originales, cantidad original como texto, evidencia y
   observaciones. Distingue Dudosa (hay candidatos sin confirmar), No encontrada
-  en esta búsqueda y Sin evaluar. No encontrada no prueba ausencia en el catálogo.
+  en esta búsqueda, Sin evaluar y Confirmada por revisión humana. Conserva unidad
+  del cliente, IdCodigo, revisor, motivo y fecha de comprobación SQL. No encontrada
+  no prueba ausencia en el catálogo.
 
 Las rutas respetan los padres por hoja/fila: si la subpartida ya contiene el prefijo
 original, no lo duplica; si no, une los niveles por punto como en el manual. Sin
@@ -88,11 +92,57 @@ Ninguna equivalencia fue confirmada. El libro original y ConstruBase permanecen
 intactos; el exportador ni siquiera abre SQL ni el Excel original.
 
 **Pendiente para la salida final:** revisar la estructura con el usuario, completar
-la interpretación del libro, confirmar equivalencias técnicas y recuperar el código,
-la descripción íntegra y la unidad validada de cada selección. Las diferencias de
+la interpretación del libro y obtener decisiones técnicas sobre candidatos reales.
+La confirmación explícita y la exportación de sus datos ya están implementadas. Las diferencias de
 unidad deberán señalarse sin convertir la cantidad original automáticamente.
 Comprobar manualmente el copiado en Neodata y resolver conflictos de códigos.
 Este archivo es una revisión parcial, no una declaración de compatibilidad de pegado.
+
+## Confirmar candidatos y exportar sus datos
+
+Primero revisar alcance, material, resistencia, dimensiones, método y condiciones,
+además de la unidad. Igualdad de palabras o de unidades no acredita equivalencia.
+No se confirma ningún candidato real sin una decisión explícita del revisor.
+
+Un archivo privado `decisiones.json` contiene solo las decisiones aprobadas:
+
+```json
+[{"hoja":"Obra","fila":3,"IdCodigo":123,"revisor":"Nombre del revisor","motivo":"Justificación técnica de la equivalencia revisada"}]
+```
+
+El ID del ejemplo es ilustrativo: reemplazarlo por el `IdCodigo` real de un único
+candidato de esa hoja/fila. Nunca copiar los códigos o textos del catálogo a mano.
+
+```powershell
+python mini_pai_confirmar.py salidas/candidatos.json datos_privados/decisiones.json --env .env --salida salidas/confirmados.json
+python mini_pai_exportar.py salidas/confirmados.json --salida salidas/revision-confirmada.xlsx
+```
+
+El confirmador valida las decisiones antes de abrir SQL. Consulta por ID, tipo 4,
+y comprueba código, descripción larga íntegra, IdUnidad y unidad contra la búsqueda.
+Si el catálogo cambió, exige buscar y revisar nuevamente. Solo ejecuta SELECT,
+reutiliza la conexión de lectura y requiere una salida nueva. El exportador utiliza
+la instantánea comprobada y su fecha, sin consultar SQL nuevamente.
+
+Registra revisor, motivo, instantánea SQL, fecha UTC y huella del concepto de origen.
+Rechaza cambios posteriores en concepto/candidato, decisiones duplicadas y
+reemplazos silenciosos de una selección. La auditoría detecta cambios accidentales;
+no es una firma digital ni demuestra por sí misma la corrección técnica del motivo.
+
+En este incremento **no se confirman unidades distintas o faltantes**. Solo admite
+la misma unidad tras la normalización textual existente. No infiere conversiones,
+ni decide que m² y m2 sean iguales si el normalizador no los iguala. Conserva el
+texto exacto de la unidad del catálogo y el original del cliente en Revisión.
+Los conflictos de un código de ConstruBase con descripciones/unidades distintas
+bloquean la exportación, sin fusionar conceptos ni inventar otro código.
+
+**Comprobado:** confirmación y exportación con casos sintéticos, incluyendo textos
+completos distintos para cliente y catálogo, código con ceros, cantidad intacta,
+rechazo de unidad diferente, candidato ausente, catálogo cambiado y auditoría
+inválida. Las nueve equivalencias del presupuesto real siguen pendientes de la
+decisión técnica del usuario; esta implementación no las da por aprobadas.
+Pasaron 77 pruebas. Se cotejaron 40 candidatos distintos contra SQL real, sin
+aplicar ninguna decisión; ese cotejo confirma procedencia, no compatibilidad técnica.
 
 ## Arquitectura provisional
 

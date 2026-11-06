@@ -51,7 +51,7 @@ class PruebasExportar(unittest.TestCase):
                 self.assertIsNone(libro["Catálogo"]["B4"].value)
                 libro.close()
 
-    def test_rechaza_seleccion_no_soportada_y_relaciones_invalidas(self):
+    def test_rechaza_seleccion_sin_auditoria_y_relaciones_invalidas(self):
         for caso in ("seleccion", "padre", "busqueda"):
             datos = self.entrada()
             if caso == "seleccion":

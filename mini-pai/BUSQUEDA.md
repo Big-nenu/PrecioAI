@@ -38,7 +38,8 @@ a conceptos existentes; no se agrupan conceptos por la clave del cliente.
 
 ## Cómo revisar la salida
 
-- `seleccion` permanece en `null`; todos los candidatos requieren revisión.
+- La búsqueda deja `seleccion` en `null`; todos los candidatos requieren revisión.
+  La confirmación explícita posterior se documenta en [README.md](README.md#confirmar-candidatos-y-exportar-sus-datos).
 - `comparacion_unidad` indica `igual`, `diferente` o `sin_datos`. No convierte
   unidades ni establece equivalencia técnica. Leer también las advertencias.
 - `observaciones_origen` señala campos vacíos del JSON interpretado. Verificar
@@ -49,8 +50,8 @@ a conceptos existentes; no se agrupan conceptos por la clave del cliente.
   candidatos; no prueba que el catálogo completo carezca de una equivalencia.
 - `requiere_terminos` identifica conceptos sin descripción o términos utilizables.
 
-Todavía no hay «buscar más», confirmación persistente, recuperación de matrices
-ni costos. La exportación inicial de revisión, sin selecciones confirmadas, está
+Todavía no hay «buscar más», recuperación de matrices ni costos. Hay confirmación
+explícita persistente y exportación con o sin selecciones verificadas, como está
 documentada en [README.md](README.md#primer-excel-de-revisión-2026-11-06). No se aplican embeddings ni un modelo de decisiones en este
 paso. El laboratorio sigue disponible como experimento independiente.
 

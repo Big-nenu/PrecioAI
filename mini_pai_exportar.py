@@ -10,6 +10,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from mini_pai_buscar import validar_entrada
+from mini_pai_confirmar import seleccion_validada
 
 
 COLUMNAS = ("Partida", "Código", "Código auxiliar", "Descripción completa",
@@ -55,12 +56,20 @@ def crear_excel(datos):
         raise ValueError("Las claves deben conservar el texto original")
     conceptos = {(r["hoja"], r["fila"]) for r in datos["registros"] if r["tipo"] == "concepto"}
     busquedas = {}
+    seleccionadas = {}
+    codigos = {}
+    origenes = {(r["hoja"], r["fila"]): r for r in datos["registros"]}
     for b in datos.get("busquedas_construbase", []):
         identidad = (b["hoja"], b["fila"])
         if identidad not in conceptos or identidad in busquedas:
             raise ValueError("Búsqueda duplicada o ajena a los conceptos")
-        if b.get("seleccion") is not None:
-            raise ValueError("La exportación de selecciones confirmadas aún no está implementada")
+        seleccionadas[identidad] = seleccion_validada(origenes[identidad], b)
+        seleccion = seleccionadas[identidad]
+        if seleccion:
+            firma = seleccion["DescripcionLarga"], seleccion["unidad_catalogo"]
+            if seleccion["Codigo"] in codigos and codigos[seleccion["Codigo"]] != firma:
+                raise ValueError("Código de ConstruBase con descripciones o unidades distintas; revisar conflicto")
+            codigos[seleccion["Codigo"]] = firma
         busquedas[identidad] = b
 
     libro = Workbook()
@@ -71,12 +80,14 @@ def crear_excel(datos):
     escribir(catalogo, COLUMNAS)
     escribir(copiar, COPIAR)
     parcial = datos.get("alcance", {}).get("parcial", False)
+    confirmadas = sum(s is not None for s in seleccionadas.values())
     escribir(revision, ["Alcance", "PARCIAL" if parcial else "Según JSON de entrada",
-                       "Confirmadas", 0, "ConstruBase vacía: ninguna selección confirmada."])
+                       "Confirmadas", confirmadas, "Solo las confirmadas usan los datos de ConstruBase."])
     escribir(revision, ["Uso", "Revisar antes de copiar manualmente. No se ha comprobado el pegado en Neodata."])
     escribir(revision, ["Hoja origen", "Fila origen", "Fila Excel", "Tipo", "Padre (fila origen)",
                        "Partida original", "Subpartida original", "Estado", "Cantidad original",
-                       "Observaciones", "Evidencia"])
+                       "Observaciones", "Evidencia", "Unidad cliente", "IdCodigo confirmado",
+                       "Revisor", "Motivo técnico", "Verificado SQL (UTC)"])
     # Se conservan los encabezados como filas y el parentesco por hoja/fila.
     rutas, estado, rutas_usadas = {}, {}, {}
     for r in datos["registros"]:
@@ -84,6 +95,8 @@ def crear_excel(datos):
         partida, subpartida = estado.get(hoja, (None, None))
         padre = None if tipo == "partida" else partida if tipo == "subpartida" else subpartida or partida
         observaciones = []
+        seleccion = None
+        catalogo_sql = None
         if tipo != "concepto":
             etiqueta = r["clave"] or r["descripcion"] or ""
             raiz = rutas.get((hoja, padre), "")
@@ -105,7 +118,12 @@ def crear_excel(datos):
         else:
             ruta = rutas.get((hoja, padre), "")
             b = busquedas.get((hoja, fila))
-            if b is None:
+            catalogo_sql = seleccionadas.get((hoja, fila))
+            if catalogo_sql is not None:
+                seleccion = b["seleccion"]
+                estado_revision = "Confirmada por revisión humana"
+                observaciones.append("Unidad cliente: " + r["unidad"] + "; unidad ConstruBase: " + catalogo_sql["unidad_catalogo"])
+            elif b is None:
                 estado_revision = "Sin evaluar"
             elif b.get("candidatos"):
                 estado_revision = "Dudosa: pendiente de confirmar"
@@ -126,15 +144,21 @@ def crear_excel(datos):
             cantidad = cantidad_excel(r["cantidad"])
             if isinstance(cantidad, str):
                 observaciones.append("Cantidad conservada como texto; revisar formato numérico")
-            # Pendiente: ningún candidato puede ocupar los campos de ConstruBase.
-            valores = [ruta, None, r["clave"], None, r["descripcion"], r["unidad"], cantidad, 4]
+            valores = [ruta, catalogo_sql["Codigo"] if catalogo_sql else None, r["clave"],
+                       catalogo_sql["DescripcionLarga"] if catalogo_sql else None, r["descripcion"],
+                       catalogo_sql["unidad_catalogo"] if catalogo_sql else r["unidad"], cantidad, 4]
+            if catalogo_sql and len(catalogo_sql["Codigo"]) > 20:
+                observaciones.append("Código de ConstruBase supera 20 caracteres; no se recortó")
         numero = escribir(catalogo, valores)
         # Seis columnas del manual; el nombre de un encabezado va en descripción auxiliar.
         escribir(copiar, [valores[0], valores[1], valores[2],
                           valores[4] if tipo == "concepto" else valores[3], valores[5], valores[6]])
         escribir(revision, [hoja, fila, numero, tipo, r.get("padre", padre), r["partida"],
                             r["subpartida"], estado_revision, r["cantidad"],
-                            "; ".join(observaciones), json.dumps(r.get("evidencia", {}), ensure_ascii=False)])
+                            "; ".join(observaciones), json.dumps(r.get("evidencia", {}), ensure_ascii=False),
+                            r["unidad"], catalogo_sql["IdCodigo"] if catalogo_sql else None,
+                            seleccion["revisor"] if seleccion else None, seleccion["motivo"] if seleccion else None,
+                            seleccion["verificado_utc"] if seleccion else None])
         for h in (catalogo, copiar):
             if tipo != "concepto":
                 for celda in h[numero]:
@@ -143,11 +167,11 @@ def crear_excel(datos):
     for hoja, anchos, cabecera in (
             (catalogo, [22, 20, 22, 72, 72, 12, 16, 9], 1),
             (copiar, [22, 20, 22, 72, 12, 16], 1),
-            (revision, [18, 12, 12, 14, 16, 20, 22, 35, 20, 65, 65], 3)):
+            (revision, [18, 12, 12, 14, 16, 20, 22, 35, 20, 65, 65, 16, 20, 24, 65, 30], 3)):
         hoja.sheet_view.showGridLines = False
         hoja.freeze_panes = f"D{cabecera + 1}"
         if hoja == revision:
-            hoja.auto_filter.ref = f"A3:K{hoja.max_row}"
+            hoja.auto_filter.ref = f"A3:P{hoja.max_row}"
         for celda in hoja[cabecera]:
             celda.fill = PatternFill("solid", fgColor="284B63")
             celda.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
@@ -180,13 +204,14 @@ def main():
     if destino.exists() or destino.is_symlink() or origen.resolve() == destino.resolve():
         parser.error("La salida debe ser un archivo nuevo; no se sobrescriben entradas ni resultados")
     libro = crear_excel(json.loads(origen.read_text(encoding="utf-8")))
+    confirmadas = libro["Revisión"]["D1"].value
     destino.parent.mkdir(parents=True, exist_ok=True)
     try:
         with destino.open("xb") as archivo:
             libro.save(archivo)
     finally:
         libro.close()
-    print("Excel de revisión generado; ninguna equivalencia confirmada")
+    print(f"Excel de revisión generado; {confirmadas} equivalencias confirmadas por revisión humana")
 
 
 if __name__ == "__main__":

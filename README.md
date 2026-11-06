@@ -185,8 +185,10 @@ ni automatiza la importación. El primer exportador `mini_pai_exportar.py` gener
 una hoja de ocho columnas según el ejemplo aportado (añade Descripción completa
 y Tipo), una vista de las seis columnas anteriores y un reporte. La descripción
 completa de una matriz confirmada debe conservarse íntegra y separada de la auxiliar.
-En este incremento no se exportan selecciones confirmadas: los campos de ConstruBase
-quedan vacíos y los originales permanecen en los auxiliares. Reutiliza `openpyxl`,
+Sin confirmación, los campos de ConstruBase quedan vacíos y los originales permanecen
+en los auxiliares. `mini_pai_confirmar.py` registra decisiones humanas explícitas con
+revisor, motivo técnico y verificación SQL de solo lectura; el exportador usa el código,
+la descripción íntegra y la unidad de esas selecciones, conservando la cantidad del cliente. Reutiliza `openpyxl`,
 sin SQL ni IA para exportar. Ver [mini-pai/README.md](mini-pai/README.md).
-**Pendiente:** confirmar equivalencias, completar el presupuesto y comprobar el
+**Pendiente:** obtener decisiones técnicas sobre las equivalencias reales, completar el presupuesto y comprobar el
 copiado manual en Neodata; no se afirma compatibilidad de pegado ya validada.
