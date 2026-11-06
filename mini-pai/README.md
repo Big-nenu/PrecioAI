@@ -16,7 +16,7 @@ Primera herramienta independiente dentro del repositorio PrecioAI. Convertir pre
 6. Generar el Excel con la estructura de partidas/subpartidas y un reporte de conceptos encontrados, no encontrados y dudosos.
 7. El usuario revisa el archivo y realiza el copiado manual a Neodata PU Win+. La comprobación manual del resultado no requiere desarrollar automatización de Neodata.
 
-**Importante:** las equivalencias se confirman mediante una decisión humana explícita, con revisor y motivo técnico. `mini_pai_confirmar.py` comprueba el candidato en SQL antes de registrarla. El ranking no confirma equivalencias; las selecciones antiguas sin auditoría se rechazan.
+**Importante:** la selección inteligente utiliza IA con evidencia y verificación SQL. Solo las dudas se reservan a revisión humana; `mini_pai_confirmar.py` sigue disponible para esas decisiones. El ranking y la unidad por sí solos no acreditan equivalencia. Cada selección identifica si proviene de IA o de revisión humana.
 
 ## Formato de salida de referencia
 
@@ -28,21 +28,21 @@ Partida | Código | Código auxiliar | Descripción auxiliar | Unidad | Cantidad
 
 El ejemplo privado `CATÁLOGO DE CONCEPTOS PARA ANALISIS DE MAESTRO.xls`, hojas PLANTILLA y EJEMPLO, usa **ocho columnas**: `Partida | Código | Código auxiliar | Descripción completa | Descripción auxiliar | Unidad | Cantidad | Tipo`. Es la referencia principal para la hoja Catálogo. Descripción completa corresponde al concepto de ConstruBase cuando exista una selección confirmada; nunca debe sustituirse por la descripción auxiliar del cliente. Los nombres de los encabezados de partida van en Descripción completa, como en el ejemplo.
 
-El formato de seis columnas se conserva en la hoja Copiar auxiliares. No se debe copiar indistintamente la tabla de ocho columnas como si fuese la de seis. El manual (pp. 246–247 y 456–458) describe los campos completos, auxiliares y rutas de partidas separadas por punto; no demuestra por sí solo el comportamiento de pegado del ejemplo de ocho columnas.
+El formato de seis columnas se conserva en la hoja Copiar auxiliares. No se debe copiar indistintamente la tabla de ocho columnas como si fuese la de seis. El manual (pp. 246–247 y 456–458) describe los campos completos, auxiliares y rutas de partidas separadas por punto; no demuestra por sí solo el comportamiento de pegado del ejemplo de ocho columnas. El usuario comunicó que el Excel generado se copia y pega correctamente en Neodata PU Win+; se conserva ese formato.
 
 El Código auxiliar admite **hasta 20 caracteres** según el manual. El código principal identifica el concepto interno; el auxiliar permite conservar el código de la licitación o cliente sin duplicar conceptos prácticamente iguales. La descripción auxiliar conserva el texto del cliente.
 
-**Pendiente de validar:** comportamiento exacto al pegar/importar conceptos no existentes en el catálogo, manejo de descripciones completas y conflictos de códigos, y correspondencia de la estructura de partidas y subpartidas. No afirmar compatibilidad definitiva hasta probarlo en Neodata.
+**Comprobado por el usuario:** copiado y pegado del Excel generado en Neodata PU Win+. No se modifican columnas ni formato de salida. Quedan por revisar otros casos de datos, conflictos y libros completos; no se desarrolla control de Neodata.
 
 ## Etapas pequeñas
 
 | Etapa | Tarea | Estado |
 | --- | --- | --- |
-| 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; falta integrar IA y evaluar equivalencias |
+| 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; selección IA conectada a nueve conceptos; cobertura técnica aún limitada |
 | 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; tres bloques reales validados, libro completo pendiente |
-| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Búsqueda inicial conectada** al JSON interpretado, con candidatos SQL revisables; compatibilidad técnica pendiente de revisión humana; confirmación explícita disponible |
-| 3 | Generar Excel con códigos y descripciones auxiliares | **Primer Excel de revisión disponible**: ejemplo de ocho columnas, vista auxiliar de seis y reporte; exporta confirmaciones explícitas verificadas en SQL |
-| 4 | Reporte y comprobación manual por el usuario en Neodata | **Reporte inicial disponible**; comprobación manual pendiente, sin automatizar Neodata |
+| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Búsqueda inicial conectada** al JSON interpretado, con candidatos SQL revisables; selección técnica mediante IA con evidencia y verificación SQL; dudas pendientes de revisión humana |
+| 3 | Generar Excel con códigos y descripciones auxiliares | **Primer Excel de revisión disponible**: ejemplo de ocho columnas, vista auxiliar de seis y reporte; exporta selecciones IA o humanas verificadas en SQL |
+| 4 | Reporte y comprobación manual por el usuario en Neodata | **Copiado comprobado por el usuario**; reporte disponible, sin automatizar Neodata |
 
 **Avance actual:** representación intermedia y búsqueda SQL de candidatos comprobadas
 con una parte de un presupuesto real. Revisar los campos incompletos y los candidatos
@@ -93,16 +93,16 @@ intactos; el exportador ni siquiera abre SQL ni el Excel original.
 
 **Pendiente para la salida final:** revisar la estructura con el usuario, completar
 la interpretación del libro y obtener decisiones técnicas sobre candidatos reales.
-La confirmación explícita y la exportación de sus datos ya están implementadas. Las diferencias de
+La selección IA y la confirmación explícita de excepciones ya están implementadas. Las diferencias de
 unidad deberán señalarse sin convertir la cantidad original automáticamente.
-Comprobar manualmente el copiado en Neodata y resolver conflictos de códigos.
-Este archivo es una revisión parcial, no una declaración de compatibilidad de pegado.
+El usuario ya comprobó el copiado en Neodata. Sigue siendo necesario resolver
+conflictos de códigos y revisar la salida parcial, sin cambiar el formato comprobado.
 
-## Confirmar candidatos y exportar sus datos
+## Confirmación humana para excepciones
 
 Primero revisar alcance, material, resistencia, dimensiones, método y condiciones,
 además de la unidad. Igualdad de palabras o de unidades no acredita equivalencia.
-No se confirma ningún candidato real sin una decisión explícita del revisor.
+Este comando queda como alternativa para los casos que la IA deje pendientes. No es necesario elegir manualmente entre cinco candidatos para cada concepto.
 
 Un archivo privado `decisiones.json` contiene solo las decisiones aprobadas:
 
@@ -139,16 +139,117 @@ bloquean la exportación, sin fusionar conceptos ni inventar otro código.
 **Comprobado:** confirmación y exportación con casos sintéticos, incluyendo textos
 completos distintos para cliente y catálogo, código con ceros, cantidad intacta,
 rechazo de unidad diferente, candidato ausente, catálogo cambiado y auditoría
-inválida. Las nueve equivalencias del presupuesto real siguen pendientes de la
-decisión técnica del usuario; esta implementación no las da por aprobadas.
+inválida. La validación de este comando no equivale a una medición de la selección automática;
+los resultados de la IA se documentan por separado más abajo.
 Pasaron 77 pruebas. Se cotejaron 40 candidatos distintos contra SQL real, sin
 aplicar ninguna decisión; ese cotejo confirma procedencia, no compatibilidad técnica.
+
+## Selección inteligente de la muestra mediante IA
+
+`mini_pai_seleccionar.py` reutiliza el proveedor y la skill existentes, la búsqueda
+SQL, la validación de evidencia, la consulta por ID y el exportador. No añade
+agentes, dependencias ni interfaz. Primero mejorar la recuperación si los candidatos
+son pobres; después comparar los textos completos. Solo se trabaja con los nueve
+conceptos ya interpretados, sin procesar el presupuesto completo.
+
+```powershell
+$env:PRECIOAI_AI_PROVIDER = 'ollama'
+$env:PRECIOAI_AI_MODEL = 'nemotron-3.5-bolt:e4b'
+$env:PRECIOAI_OLLAMA_NUM_CTX = '8192'
+$env:PRECIOAI_OLLAMA_NUM_PREDICT = '4096'
+$env:PRECIOAI_OLLAMA_THINK = 'true'
+python mini_pai_buscar.py salidas/interpretacion.json --ampliar --salida salidas/candidatos-ampliados.json
+python mini_pai_seleccionar.py salidas/candidatos-ampliados.json --salida salidas/decisiones-ia.json
+python mini_pai_exportar.py salidas/decisiones-ia.json --salida salidas/revision-ia.xlsx
+```
+
+`--env` permite señalar la configuración SQL local, como en los comandos previos.
+La recuperación ampliada pagina de 50 en 50 hasta 500 resultados por intento antes
+de ordenar, prioriza unidad coincidente y conserva cinco candidatos completos.
+Esto evita el corte por los primeros códigos; no acredita equivalencia ni garantiza
+haber recuperado todo lo pertinente. El modo anterior permanece disponible.
+
+La IA evalúa materiales, procedimiento, dimensiones, espesor, resistencia, alcance
+y unidad. Devuelve dictámenes por candidato y un ID seleccionado o null. Señala
+fragmentos identificados; Python materializa el texto original, como ya hacía con
+las celdas del Excel. No se le pide reescribir códigos ni descripciones de salida.
+Se admiten equivalencias semánticas justificadas, sin exigir palabras idénticas;
+«por cualquier medio» permite un método concreto compatible, pero no otro alcance.
+Diferencias importantes o requisitos no acreditados deben quedar pendientes.
+
+Una selección requiere las siete comprobaciones, citas verificables, unidad
+coincidente y ausencia de diferencias/incertidumbre. Hay guardas adicionales para
+valores numéricos diferentes en dimensiones, espesor y resistencia, y para no_aplica
+que oculte especificaciones expresas. No constituyen un verificador semántico completo.
+Se permite un único reintento de corrección de contrato por concepto. Errores,
+truncamiento y dudas dejan pendiente el concepto, sin fabricar una elección.
+
+Antes de aceptar una selección, se consulta nuevamente en SQL el IdCodigo tipo 4,
+código, descripción larga y unidad. Cualquier cambio invalida la selección. La
+instantánea, evidencia, modelo y origen IA quedan auditados; el exportador vuelve
+a comprobar las huellas. No se etiqueta una elección IA como aprobación humana.
+El Excel conserva sus ocho/seis columnas, los auxiliares y la cantidad original;
+solo las selecciones válidas reciben datos íntegros de ConstruBase. Revisión
+muestra los motivos de los pendientes usando sus columnas existentes.
+
+Para acotar contexto sin cambiar el modelo, el proveedor utiliza opcionalmente
+[la API nativa de Ollama](https://docs.ollama.com/api/chat) al configurar
+`PRECIOAI_OLLAMA_NUM_CTX` (4096–32768). `NUM_PREDICT` limita la generación y `THINK`
+es opcional: si no se configura, respeta el valor del modelo. Sin esas opciones
+se conserva la ruta compatible OpenAI anterior. El contexto inicial observado
+fue 65536; la prueba acotada usa 8192 y el mismo modelo. El razonamiento desactivado
+produjo descartes semánticos defectuosos; no se presenta como una evaluación fiable.
+
+Los resultados reales de esta muestra se registran a continuación. Son cobertura
+y observaciones verificables, no una precisión general ni una certificación técnica.
+
+### Resultado verificable de los nueve conceptos (2026-11-06)
+
+Con `nemotron-3.5-bolt:e4b`, contexto 8192, generación máxima 4096 y razonamiento
+activado: **1 selección automática, 8 pendientes, 0 errores de ejecución**. Tiempo
+acumulado de comparación: 146,611 segundos en esta ejecución local. La cantidad de
+selecciones mide cobertura sobre esta muestra, no precisión técnica general.
+
+- Seleccionó `10401-104` (IdCodigo 619), carga y acarreo de excavación fuera de obra
+  a tiro autorizado, medido en banco. Su procedimiento de carga a máquina es
+  compatible con «por cualquier medio». Registró siete comprobaciones con evidencia,
+  motivo y modelo; código, descripción larga y unidad se verificaron en SQL antes
+  de aceptar y nuevamente durante la comprobación del archivo.
+- Dejó pendientes las demoliciones: material distinto (mampostería frente a concreto)
+  o alcance parcial de muros/losas frente a demolición integral e inclusiones no
+  acreditadas. No asignó un código por compartir unidad o palabras.
+- Dejó pendientes trazo y excavaciones por detalle de inclusiones o clasificación
+  de materiales no acreditados. **Limitación:** puede ser excesivamente conservador
+  con descripciones generales, sinónimos o tipo B frente a I-B/II-B. Son candidatos
+  a falsos descartes; no se da por probado que carezcan de equivalencia en ConstruBase.
+- Rechazó la plantilla cuyos candidatos son de 3, 4 o 5 cm frente a 6 cm solicitados.
+
+La recuperación ampliada evitó el corte inicial por código; sigue acotada a cinco
+opciones comparadas y puede omitir otra más pertinente. No se han inspeccionado
+insumos/costos de cada análisis ni construido un conjunto etiquetado por un experto.
+Las guardas verifican procedencia, consistencia, unidades y conflictos concretos;
+no certifican por sí mismas la semántica completa de la decisión IA.
+
+Pasaron **90 pruebas**. Se comprobaron conservación de las tablas de ocho/seis
+columnas, anchos y paneles inmovilizados, todos los auxiliares y cantidades,
+campos completos de ConstruBase de la elección y hash intacto del Excel original.
+Se reabrió el `.xlsx` y se inspeccionaron visualmente sus tres hojas. Las únicas
+sustituciones en las tablas de copiado son código, descripción principal y unidad
+del concepto seleccionado. Los presupuestos, respuestas y reportes detallados
+permanecen locales, fuera de Git. El copiado en Neodata fue comprobado por el usuario;
+no se ha automatizado ni se ha cambiado ese formato.
+
+Las primeras pasadas fueron exploratorias: las citas reescritas por el modelo
+causaron errores y se reemplazaron por referencias a fragmentos. Sin razonamiento
+hubo falsos descartes semánticos; el resultado informado es la ejecución final con
+razonamiento y evidencia verificada. No se cambió de modelo ni se repitió el
+laboratorio de embeddings. No se procesó el presupuesto completo.
 
 ## Arquitectura provisional
 
 La conexión entre interpretación y búsqueda está en
 [BUSQUEDA.md](BUSQUEDA.md): conserva el presupuesto original y añade hasta cinco
-candidatos por concepto, pendientes de revisión humana.
+candidatos por concepto, comparados por IA; los casos dudosos quedan para revisión humana.
 
 La evaluación inicial de recuperación con embeddings y de pares con TEV1 está
 documentada en [LABORATORIO.md](LABORATORIO.md). Reutiliza piezas de StoneWave

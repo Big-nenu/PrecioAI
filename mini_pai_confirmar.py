@@ -2,8 +2,10 @@
 import argparse
 from copy import deepcopy
 from datetime import datetime, timezone
+from decimal import Decimal
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from buscar_conceptos import conectar_sql
@@ -12,6 +14,83 @@ from ranking_conceptos import normalizar
 
 
 CAMPOS_SQL = ("IdCodigo", "Codigo", "DescripcionLarga", "IdUnidad", "IdTipo", "unidad_catalogo")
+ASPECTOS = ("materiales", "procedimiento", "dimensiones", "espesor", "resistencia", "alcance", "unidad")
+
+
+def validar_evaluacion_ia(registro, busqueda, evaluacion):
+    """Comprueba IDs, cobertura y citas; no es una prueba de corrección semántica."""
+    if (not isinstance(evaluacion, dict) or set(evaluacion) != {"seleccion_id", "motivo", "candidatos", "comprobaciones"}
+            or not isinstance(evaluacion["motivo"], str) or not evaluacion["motivo"].strip()
+            or not isinstance(evaluacion["candidatos"], list) or not isinstance(evaluacion["comprobaciones"], list)):
+        raise ValueError("Evaluación IA incompleta")
+    fuentes = {c["IdCodigo"]: c for c in busqueda["candidatos"]}
+    vistos = set()
+    def cita(texto, fuente):
+        return isinstance(texto, str) and " ".join(normalizar(texto).split()) in " ".join(normalizar(fuente or "").split())
+    for item in evaluacion["candidatos"]:
+        if (not isinstance(item, dict) or set(item) != {"IdCodigo", "dictamen", "motivo", "cliente", "catalogo"}
+                or type(item["IdCodigo"]) is not int or item["IdCodigo"] not in fuentes or item["IdCodigo"] in vistos
+                or item["dictamen"] not in ("equivalente", "incompatible", "insuficiente")
+                or not isinstance(item["motivo"], str) or not item["motivo"].strip()):
+            raise ValueError("Dictamen con ID ajeno, duplicado o incompleto")
+        vistos.add(item["IdCodigo"])
+        c = fuentes[item["IdCodigo"]]
+        if (not (cita(item["cliente"], registro["descripcion"]) or cita(item["cliente"], registro["unidad"]))
+                or not (cita(item["catalogo"], c["DescripcionLarga"]) or cita(item["catalogo"], c.get("unidad_catalogo")))):
+            raise ValueError("Cita de evidencia ajena al texto original")
+        if item["dictamen"] == "incompatible" and (not item["cliente"].strip() or not item["catalogo"].strip()):
+            raise ValueError("Incompatibilidad sin evidencia de ambos textos")
+    if vistos != set(fuentes):
+        raise ValueError("La IA no evaluó todos los candidatos")
+    elegido = evaluacion["seleccion_id"]
+    if elegido is None:
+        if any(i["dictamen"] == "equivalente" for i in evaluacion["candidatos"]):
+            raise ValueError("Dictamen equivalente sin selección: si existe duda, clasificarlo insuficiente")
+        if evaluacion["comprobaciones"]:
+            raise ValueError("Sin selección no debe haber comprobaciones de un candidato elegido")
+        return
+    c = candidato_elegido(busqueda, elegido)
+    if len(evaluacion["motivo"].strip()) < 30:
+        raise ValueError("La selección necesita una justificación técnica, no una etiqueta")
+    if not any(i["IdCodigo"] == elegido and i["dictamen"] == "equivalente" for i in evaluacion["candidatos"]):
+        raise ValueError("Selección sin dictamen equivalente")
+    validar_unidad(registro, c)
+    aspectos = set()
+    for p in evaluacion["comprobaciones"]:
+        if (not isinstance(p, dict) or set(p) != {"aspecto", "estado", "cliente", "catalogo", "motivo"}
+                or p["aspecto"] not in ASPECTOS or p["aspecto"] in aspectos
+                or p["estado"] not in ("compatible", "no_aplica")
+                or not isinstance(p["motivo"], str) or not p["motivo"].strip()):
+            raise ValueError("Selección con diferencias, incertidumbre o comprobaciones incompletas")
+        aspectos.add(p["aspecto"])
+        if p["estado"] == "no_aplica":
+            if p["aspecto"] in ("procedimiento", "alcance", "unidad") or p["cliente"] != "" or p["catalogo"] != "":
+                raise ValueError("No_aplica no puede ocultar un requisito esencial")
+            t = normalizar(registro["descripcion"])
+            if ((p["aspecto"] == "espesor" and "espesor" in t)
+                    or (p["aspecto"] == "resistencia" and re.search(r"f\s*['’]?\s*c|kg\s*/\s*cm", t))
+                    or (p["aspecto"] == "dimensiones" and re.search(r"\d\s*(?:cm|mm|m)\b", t))):
+                raise ValueError("No_aplica oculta una especificación dimensional o de resistencia")
+        else:
+            origen = registro["unidad"] if p["aspecto"] == "unidad" else registro["descripcion"]
+            destino = c["unidad_catalogo"] if p["aspecto"] == "unidad" else c["DescripcionLarga"]
+            if (not isinstance(p["cliente"], str) or not p["cliente"].strip()
+                    or not isinstance(p["catalogo"], str) or not p["catalogo"].strip()
+                    or not cita(p["cliente"], origen) or not cita(p["catalogo"], destino)):
+                raise ValueError("Comprobación sin citas verificables")
+            if p["aspecto"] in ("dimensiones", "espesor", "resistencia"):
+                def numeros(texto):
+                    return {Decimal(n.replace(",", ".")) for n in re.findall(r"\d+(?:[.,]\d+)?", texto)}
+                if numeros(p["cliente"]) != numeros(p["catalogo"]):
+                    raise ValueError("Valores técnicos distintos en las citas; no se infieren conversiones")
+            if p["aspecto"] == "materiales":
+                def tipos(texto):
+                    return set(re.findall(r"\btipo\s*[\"']?([abc])\b", normalizar(texto)))
+                a, b = tipos(p["cliente"]), tipos(p["catalogo"])
+                if a and b and a != b:
+                    raise ValueError("Tipos de material explícitos distintos")
+    if aspectos != set(ASPECTOS):
+        raise ValueError("Falta evaluar algún aspecto técnico")
 
 
 def huella(registro):
@@ -44,8 +123,9 @@ def seleccion_validada(registro, busqueda):
     seleccion = busqueda.get("seleccion")
     if seleccion is None:
         return None
+    base = {"IdCodigo", "revisor", "motivo", "concepto_sha256", "catalogo", "verificado_utc"}
     if (not isinstance(seleccion, dict)
-            or set(seleccion) != {"IdCodigo", "revisor", "motivo", "concepto_sha256", "catalogo", "verificado_utc"}
+            or set(seleccion) not in (base, base | {"origen", "modelo", "evaluacion_sha256"})
             or any(not isinstance(seleccion.get(c), str) or not seleccion[c].strip()
                    for c in ("revisor", "motivo", "verificado_utc"))):
         raise ValueError("La selección requiere una confirmación explícita con auditoría")
@@ -55,6 +135,15 @@ def seleccion_validada(registro, busqueda):
     if seleccion["catalogo"] != {c: candidato[c] for c in CAMPOS_SQL}:
         raise ValueError("Los datos del candidato cambiaron después de la confirmación")
     validar_unidad(registro, candidato)
+    if "origen" in seleccion:
+        if seleccion["origen"] != "ia" or not isinstance(seleccion["modelo"], str) or not seleccion["modelo"].strip():
+            raise ValueError("Origen de selección inválido")
+        evaluacion = busqueda.get("evaluacion_ia")
+        if seleccion["evaluacion_sha256"] != huella(evaluacion):
+            raise ValueError("La evidencia IA cambió tras seleccionar")
+        validar_evaluacion_ia(registro, busqueda, evaluacion)
+        if evaluacion["seleccion_id"] != seleccion["IdCodigo"] or evaluacion["motivo"] != seleccion["motivo"]:
+            raise ValueError("Selección y evaluación IA no coinciden")
     return seleccion["catalogo"]
 
 

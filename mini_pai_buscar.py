@@ -48,7 +48,7 @@ def validar_entrada(presupuesto, terminos):
     validar_jerarquia(presupuesto["registros"])
 
 
-def buscar_presupuesto(presupuesto, conexion, *, terminos=None):
+def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False):
     """Preserva la entrada y añade búsquedas separadas. Ningún candidato se confirma."""
     terminos = {} if terminos is None else terminos
     validar_entrada(presupuesto, terminos)
@@ -81,12 +81,20 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None):
         for texto in consultas:
             if texto not in cache:
                 cache[texto] = buscar(conexion, texto, 50, tipo=4)
+                if ampliar:
+                    while cache[texto] and len(cache[texto]) % 50 == 0 and len(cache[texto]) < 500:
+                        pagina = buscar(conexion, texto, 50, tipo=4, desplazamiento=len(cache[texto]))
+                        cache[texto] += pagina
+                        if len(pagina) < 50:
+                            break
             recuperados = cache[texto]
             resultado["intentos"].append(dict(terminos=texto, recuperados=len(recuperados)))
             if recuperados:
                 break
         resultado["recuperados"] = len(recuperados)
-        resultado["limite_sql_alcanzado"] = len(recuperados) == 50
+        resultado["limite_sql_alcanzado"] = len(recuperados) == (500 if ampliar else 50)
+        if ampliar:
+            resultado["limite_recuperacion"] = 500
         # IdCodigo identifica los conceptos; no fusionar por código o descripción.
         unicos = {}
         for candidato in recuperados:
@@ -104,6 +112,11 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None):
         # Conserva el ranking existente dentro de cada grupo. Evita que una obra
         # distinta suba solo por mencionar la actividad entre sus inclusiones.
         ordenados.sort(key=lambda c: not c["coincide_inicio_actividad"])
+        if ampliar:
+            # Recuperación: prioriza unidad coincidente sin afirmar equivalencia.
+            unidad_cliente = normalizar(registro["unidad"] or "").strip()
+            ordenados.sort(key=lambda c: not (unidad_cliente and unidad_cliente ==
+                normalizar(unidades.get(c.get("IdUnidad")) or "").strip()))
         for candidato in ordenados[:5]:
             unidad = unidades.get(candidato.get("IdUnidad"))
             a, b = normalizar(registro["unidad"] or "").strip(), normalizar(unidad or "").strip()
@@ -124,6 +137,10 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None):
         "actividad y después el ranking existente. Hasta 50 resultados SQL por intento y "
         "hasta 5 candidatos mostrados por concepto. No equivale a buscar todo el catálogo por relevancia ni "
         "a confirmar equivalencias. Los conceptos originales permanecen intactos. No se recuperan matrices ni costos.")
+    if ampliar:
+        salida["aviso_busqueda"] = ("Recuperación ampliada: páginas de 50 hasta 500 por intento; "
+            "prioriza unidad coincidente y ranking existente, muestra hasta cinco. "
+            "La unidad y el ranking no prueban equivalencia técnica. No se buscan matrices ni costos.")
     return salida
 
 
@@ -133,6 +150,7 @@ def main():
     parser.add_argument("--salida", required=True)
     parser.add_argument("--env", default=".env", help="Configuración SQL local")
     parser.add_argument("--terminos", help="JSON opcional: mapa hoja:fila a términos de búsqueda")
+    parser.add_argument("--ampliar", action="store_true", help="Recuperar hasta 500 por intento antes de ordenar")
     args = parser.parse_args()
     destino = Path(args.salida)
     ruta_env = Path(args.env)
@@ -148,7 +166,7 @@ def main():
     terminos = json.loads(Path(args.terminos).read_text(encoding="utf-8")) if args.terminos else {}
     validar_entrada(presupuesto, terminos)
     with conectar_sql(ruta_env) as conexion:
-        datos = buscar_presupuesto(presupuesto, conexion, terminos=terminos)
+        datos = buscar_presupuesto(presupuesto, conexion, terminos=terminos, ampliar=args.ampliar)
     destino.parent.mkdir(parents=True, exist_ok=True)
     destino.write_text(json.dumps(datos, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     print(f"{len(datos['busquedas_construbase'])} conceptos consultados; candidatos pendientes de revisión")

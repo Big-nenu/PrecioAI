@@ -7,12 +7,14 @@ import socket
 import sys
 
 
-def buscar(conexion, texto, limite=10, *, tipo=None):
+def buscar(conexion, texto, limite=10, *, tipo=None, desplazamiento=0):
     """Devuelve coincidencias de la descripción completa, sin modificar la BD."""
     if not 1 <= limite <= 50:
         raise ValueError("El límite debe estar entre 1 y 50")
     if tipo is not None and (type(tipo) is not int or not 1 <= tipo <= 5):
         raise ValueError("Tipo de insumo inválido")
+    if type(desplazamiento) is not int or desplazamiento < 0:
+        raise ValueError("Desplazamiento inválido")
     palabras = [p for p in texto.strip().split() if p]
     if not palabras:
         raise ValueError("Indica palabras para buscar")
@@ -22,10 +24,14 @@ def buscar(conexion, texto, limite=10, *, tipo=None):
     if tipo is not None:
         filtros = "IdTipo = ? AND " + filtros
         parametros.insert(0, tipo)
-    sql = f"""SELECT TOP ({limite}) IdCodigo, Codigo, Descripcion, DescripcionLarga, IdUnidad, IdTipo
+    tope = f"TOP ({limite}) " if not desplazamiento else ""
+    sql = f"""SELECT {tope}IdCodigo, Codigo, Descripcion, DescripcionLarga, IdUnidad, IdTipo
 FROM dbo.PuCatalogo
 WHERE {filtros}
 ORDER BY Codigo, IdCodigo"""
+    if desplazamiento:
+        sql += f" OFFSET ? ROWS FETCH NEXT {limite} ROWS ONLY"
+        parametros.append(desplazamiento)
     cursor = conexion.cursor()
     cursor.execute(sql, *parametros)
     columnas = [col[0] for col in cursor.description]

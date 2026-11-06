@@ -39,7 +39,7 @@ a conceptos existentes; no se agrupan conceptos por la clave del cliente.
 ## Cómo revisar la salida
 
 - La búsqueda deja `seleccion` en `null`; todos los candidatos requieren revisión.
-  La confirmación explícita posterior se documenta en [README.md](README.md#confirmar-candidatos-y-exportar-sus-datos).
+  La selección IA y la confirmación humana de excepciones se documentan en [README.md](README.md).
 - `comparacion_unidad` indica `igual`, `diferente` o `sin_datos`. No convierte
   unidades ni establece equivalencia técnica. Leer también las advertencias.
 - `observaciones_origen` señala campos vacíos del JSON interpretado. Verificar
@@ -50,10 +50,19 @@ a conceptos existentes; no se agrupan conceptos por la clave del cliente.
   candidatos; no prueba que el catálogo completo carezca de una equivalencia.
 - `requiere_terminos` identifica conceptos sin descripción o términos utilizables.
 
-Todavía no hay «buscar más», recuperación de matrices ni costos. Hay confirmación
-explícita persistente y exportación con o sin selecciones verificadas, como está
+Todavía no hay «buscar más», recuperación de matrices ni costos. Hay selección
+IA, confirmación humana de excepciones y exportación con o sin selecciones verificadas, como está
 documentada en [README.md](README.md#primer-excel-de-revisión-2026-11-06). No se aplican embeddings ni un modelo de decisiones en este
 paso. El laboratorio sigue disponible como experimento independiente.
+
+## Recuperación ampliada para comparación IA
+
+`--ampliar` recorre páginas SQL de 50 hasta 500 coincidencias por intento, antes de
+ordenar y mostrar cinco. Prioriza unidad coincidente, sin afirmar compatibilidad.
+`limite_recuperacion` documenta el tope y `limite_sql_alcanzado` indica si se llegó.
+Se mantienen términos e intentos visibles. En la muestra recuperó 149 demoliciones,
+68 demoliciones con concreto y 62 resultados de trazo; no equivale a una búsqueda
+semántica exhaustiva. La comparación posterior recibe descripciones completas.
 
 ## Comprobación parcial (2026-11-06)
 

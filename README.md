@@ -190,5 +190,8 @@ en los auxiliares. `mini_pai_confirmar.py` registra decisiones humanas explícit
 revisor, motivo técnico y verificación SQL de solo lectura; el exportador usa el código,
 la descripción íntegra y la unidad de esas selecciones, conservando la cantidad del cliente. Reutiliza `openpyxl`,
 sin SQL ni IA para exportar. Ver [mini-pai/README.md](mini-pai/README.md).
-**Pendiente:** obtener decisiones técnicas sobre las equivalencias reales, completar el presupuesto y comprobar el
-copiado manual en Neodata; no se afirma compatibilidad de pegado ya validada.
+`mini_pai_seleccionar.py` añade comparación técnica mediante IA, evidencia por
+fragmentos y verificación SQL de cada elección, reservando dudas a revisión humana.
+El usuario comprobó el copiado del Excel en Neodata; ese formato se conserva.
+**Pendiente:** evaluar la cobertura técnica de la muestra, resolver dudas y completar
+el presupuesto en otra etapa. No se automatiza Neodata.

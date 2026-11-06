@@ -9,8 +9,12 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 3. Mantener trazabilidad por archivo, hoja/página y fila o región. Conservar cada renglón aunque se repita una clave.
 4. Señalar campos dudosos para revisión humana, sin detener los registros claros.
 5. Para cada concepto, extraer características técnicas y buscar candidatos reales mediante herramientas SQL de solo lectura.
-6. Comparar alcance, material, método, unidad y condiciones; mostrar hasta cinco candidatos válidos, sin rellenar ni fabricar coincidencias.
-7. Esperar selección del usuario antes de asociar una matriz; nunca modificar ConstruBase.
+6. Comparar alcance, material, método, dimensiones, espesor, resistencia, unidad y
+   condiciones de hasta cinco candidatos recuperados. Separar compatibles,
+   incompatibles e insuficientes; no rellenar ni fabricar coincidencias.
+7. En la selección inteligente de Mini-PAI, elegir mediante IA solo equivalencias
+   técnicamente justificadas con evidencia y verificación SQL. Reservar la revisión
+   humana para diferencias, dudas o información insuficiente. Nunca modificar ConstruBase.
 
 ## Interpretación de catálogo en Mini-PAI (etapa 1)
 - Conservar cada encabezado de agrupación como partida o subpartida, aunque no
@@ -37,5 +41,7 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 `mini_pai_interpretar.py` usa esta skill y `proveedor_ia.py` para una interpretación
 revisable de Excel con evidencia y validación determinista. No hay agente con
 llamadas autónomas a herramientas. Existe procesamiento por bloques con contexto
-de padres; siguen pendientes su validación sobre libros completos, la integración
-SQL y pruebas con documentos diversos.
+de padres; siguen pendientes su validación sobre libros completos y documentos diversos.
+`mini_pai_seleccionar.py` reutiliza esta skill y herramientas deterministas para
+comparar candidatos completos, recuperar evidencia por fragmentos y comprobar en
+SQL las selecciones IA. No cambia el formato Excel ya comprobado por el usuario.

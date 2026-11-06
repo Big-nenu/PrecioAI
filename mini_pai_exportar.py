@@ -83,7 +83,7 @@ def crear_excel(datos):
     confirmadas = sum(s is not None for s in seleccionadas.values())
     escribir(revision, ["Alcance", "PARCIAL" if parcial else "Según JSON de entrada",
                        "Confirmadas", confirmadas, "Solo las confirmadas usan los datos de ConstruBase."])
-    escribir(revision, ["Uso", "Revisar antes de copiar manualmente. No se ha comprobado el pegado en Neodata."])
+    escribir(revision, ["Uso", "Copiado probado por el usuario en Neodata. Revisar los conceptos pendientes."])
     escribir(revision, ["Hoja origen", "Fila origen", "Fila Excel", "Tipo", "Padre (fila origen)",
                        "Partida original", "Subpartida original", "Estado", "Cantidad original",
                        "Observaciones", "Evidencia", "Unidad cliente", "IdCodigo confirmado",
@@ -121,7 +121,8 @@ def crear_excel(datos):
             catalogo_sql = seleccionadas.get((hoja, fila))
             if catalogo_sql is not None:
                 seleccion = b["seleccion"]
-                estado_revision = "Confirmada por revisión humana"
+                estado_revision = ("Seleccionada por IA (SQL verificado)" if seleccion.get("origen") == "ia"
+                                   else "Confirmada por revisión humana")
                 observaciones.append("Unidad cliente: " + r["unidad"] + "; unidad ConstruBase: " + catalogo_sql["unidad_catalogo"])
             elif b is None:
                 estado_revision = "Sin evaluar"
@@ -132,8 +133,11 @@ def crear_excel(datos):
                 observaciones.append("No demuestra ausencia de equivalencia en todo ConstruBase")
             else:
                 estado_revision = "Sin evaluar"
+            if b and (b.get("evaluacion_ia") or b.get("error_ia")) and catalogo_sql is None:
+                estado_revision = "Pendiente de revisión: IA"
+                observaciones.append(b.get("error_ia") or b["evaluacion_ia"]["motivo"])
             if b and b.get("limite_sql_alcanzado"):
-                observaciones.append("Búsqueda limitada a 50 resultados SQL")
+                observaciones.append(f"Búsqueda limitada a {b.get('limite_recuperacion', 50)} resultados SQL")
             for campo in ("clave", "descripcion", "unidad", "cantidad"):
                 if r[campo] is None or not str(r[campo]).strip():
                     observaciones.append("Falta " + campo + " del cliente")
@@ -157,7 +161,8 @@ def crear_excel(datos):
                             r["subpartida"], estado_revision, r["cantidad"],
                             "; ".join(observaciones), json.dumps(r.get("evidencia", {}), ensure_ascii=False),
                             r["unidad"], catalogo_sql["IdCodigo"] if catalogo_sql else None,
-                            seleccion["revisor"] if seleccion else None, seleccion["motivo"] if seleccion else None,
+                            seleccion["revisor"] if seleccion else None,
+                            seleccion["motivo"] if seleccion else (b.get("evaluacion_ia", {}).get("motivo") if tipo == "concepto" and b else None),
                             seleccion["verificado_utc"] if seleccion else None])
         for h in (catalogo, copiar):
             if tipo != "concepto":
@@ -211,7 +216,7 @@ def main():
             libro.save(archivo)
     finally:
         libro.close()
-    print(f"Excel de revisión generado; {confirmadas} equivalencias confirmadas por revisión humana")
+    print(f"Excel de revisión generado; {confirmadas} selecciones verificadas (origen IA/humano en Revisión)")
 
 
 if __name__ == "__main__":
