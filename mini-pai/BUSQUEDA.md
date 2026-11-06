@@ -66,3 +66,27 @@ Pendiente: corregir o confirmar los campos incompletos de la interpretación,
 revisar alcance, método, material, resistencia y dimensiones con una persona
 conocedora del dominio, y confirmar una selección antes de reutilizar matrices.
 Una unidad igual o un puntaje alto no bastan para aprobar un candidato.
+
+## Completar campos omitidos con evidencia
+
+Antes de buscar, `mini_pai_completar.py` permite completar campos nulos de conceptos
+mediante referencias explícitas verificadas contra el Excel, sin reglas de columnas:
+
+```powershell
+python mini_pai_completar.py interpretacion.json original.xlsx cambios.json --salida interpretacion-completada.json
+```
+
+`cambios.json` contiene una lista, por ejemplo:
+`[{"hoja":"Obra","fila":2,"campo":"unidad","celdas":["Z2"]}]`.
+Solo admite clave, descripción, unidad o cantidad omitidas; rechaza sobrescrituras,
+referencias vacías/inexistentes, duplicados y evidencia que comienza en otra fila.
+Valida todos los datos contra el libro antes y después. Conserva evidencia y agrega
+`completados` con valor anterior, valor exacto, referencias y SHA256 del Excel.
+No reemplaza las entradas ni modifica el libro. Una salida que ya tenga búsquedas
+se rechaza: completar primero y volver a buscar para evitar resultados obsoletos.
+La comprobación de celdas acredita procedencia; revisar la interpretación semántica.
+
+Comprobación local: se revisaron explícitamente las celdas D26, D27, D28 y D30 del
+presupuesto de prueba. Sus unidades estaban presentes en el Excel y omitidas en
+el JSON; se recuperaron exactamente, incluidos espacios, sin modificar cantidades.
+Esto corrige esa muestra; no garantiza que la IA complete todos los campos futuros.
