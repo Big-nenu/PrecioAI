@@ -355,3 +355,10 @@ El código existente en la raíz de PrecioAI permanece donde está por ahora. No
 - Implementar una etapa pequeña a la vez; reutilizar el código existente y evitar dependencias innecesarias.
 - No subir presupuestos privados, bases de datos ni credenciales al repositorio.
 - Antes de comercializar una solución que dependa de ConstruBase o Neodata, verificar los derechos y condiciones de uso correspondientes.
+
+## Investigación de los ocho pendientes (sin cambiar la selección)
+
+La comparación aislada de Nemotron, `d1:3b` y `tev1:0.8b` con los mismos 45 pares
+está en [EVALUADORES.md](EVALUADORES.md). No demuestra una mejora segura al sustituir
+el modelo: identifica falsos positivos y excesos de rigor semántico. La rúbrica de
+cuatro categorías es experimental; el selector operativo y el Excel siguen intactos.
