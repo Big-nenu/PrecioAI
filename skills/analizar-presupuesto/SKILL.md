@@ -23,12 +23,17 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
 - Respaldar cada atributo con una cita de su campo. Un número debe conservar su
   contexto: resistencia, espesor, dimensión u otro significado; no convertir una
   cantidad de presupuesto en una especificación técnica. Ausente significa desconocido.
+- Las comas agrupadas de miles de la convención usada (4,200 o 2,530) representan
+  4200 y 2530; 0,05 es decimal. Las fracciones son valores completos, no números
+  independientes. Conservar citas originales. No inventar conversiones de unidades
+  ni tratar el mero formato distinto como diferencia técnica; formatos no resueltos
+  requieren revisión.
 - Proponer consultas breves de palabras clave y variantes semánticas. Priorizar
   las específicas con atributos explícitos y conservar una alternativa amplia
   de actividad. Combinar el núcleo de actividad con un atributo por consulta,
   sin acumular objeto, destino e inclusiones en la misma conjunción. Evitar
   artículos y puntuación que SQL buscaría literalmente. La alternativa amplia
-  conserva dos términos complementarios cuando la actividad los necesita.
+  conserva hasta tres términos complementarios para actividades de nombre compuesto.
   No buscar la descripción completa ni exigir todas sus inclusiones.
 - Comparar la unidad por separado; no asumir que está escrita en la descripción
   del catálogo. No inventar métodos: «por cualquier medio» no significa «manual».
@@ -36,6 +41,11 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   ni garantizan inclusiones. No cambiar los códigos o descripciones originales.
 
 ## Criterio de comparación técnica (etapa 2)
+- Ordenar los cinco candidatos de mejor base técnica a peor para mostrar las tres
+  opciones al usuario, incluso cuando ninguno permita sustitución automática.
+  Priorizar trabajo principal y cobertura, material y valores técnicos coincidentes;
+  no copiar orden SQL, códigos ni similitud léxica. Descartar diferencias reales
+  antes que omisiones; situar incompatibles al final. Orden no significa aprobación.
 - Separar tres situaciones en el motivo: REDACCION_EQUIVALENTE, NO_MENCIONADO y
   DIFERENCIA_REAL. No mezclar ausencia de información con contradicción.
 - REDACCION_EQUIVALENTE: dos expresiones acreditan la misma función técnica.
@@ -70,8 +80,9 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   existentes; después generar las opciones con `mini_pai_revision.py`.
 - Si hay una selección IA válida, conservarla. Para cada caso dudoso mostrar al
   usuario hasta tres candidatos del reporte: código, descripción completa, unidad
-  y motivo técnico. Se excluyen candidatos declarados incompatibles; mantener el
-  orden de recuperación. No llamarlos equivalentes solo por ser opciones cercanas.
+  y motivo técnico. Se excluyen candidatos declarados incompatibles; usar el orden
+  técnico de la evaluación validada, o recuperación si la evaluación falló.
+  No llamarlos equivalentes solo por ser opciones cercanas.
 - Ofrecer la opción 4: «Conservar concepto original — sin matriz de ConstruBase».
   Esperar la respuesta real del usuario; no elegir por él ni fabricar confirmaciones.
   Si las opciones no sirven, permitir conservar el original. Si hay un error de

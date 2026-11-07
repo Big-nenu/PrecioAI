@@ -534,3 +534,75 @@ respuestas al usuario. Las tres filas reales tienen opciones listas y siguen
 pendientes de su elección. Falta probar la conversación completa dentro de Cline
 con esas respuestas y comprobar el nuevo contenido sin matriz al copiarlo a Neodata.
 No se reprocesó el presupuesto completo ni se modificaron ConstruBase o el original.
+
+
+## Correcciones de validación y opciones técnicas (2026-11-06)
+
+`numeros_tecnicos.py` unifica la comparación numérica de búsqueda y selección.
+Usa la convención de comas agrupadas de miles del presupuesto (`4,200` = `4200`,
+`2,530` = `2530`), punto decimal y coma decimal no agrupada (`0,05`). Un cero
+inicial conserva el decimal (`0,005`); no se interpreta el punto como miles.
+Los formatos mixtos no resueltos se rechazan. No adivina la configuración regional
+de cualquier documento: una coma seguida de tres cifras puede ser ambigua en otras
+convenciones y exige comprobar la fuente. Fracciones como `5/16` son valores
+completos, no una bolsa de numerador y denominador. No convierte unidades ni cambia
+citas, cantidades, descripciones, códigos o celdas de salida.
+
+La preparación admite hasta tres palabras en el nombre de actividad amplio; el
+límite anterior de dos rechazaba nombres compuestos como excavación cielo abierto
+o acero de refuerzo. Sigue habiendo hasta tres consultas y guardas de evidencia.
+
+La incoherencia entre selección, dictamen y comprobaciones degrada la propuesta a
+pendiente sin fabricar equivalencia. Se conservan respuesta materializada y motivos
+en `evaluacion_ia_propuesta`. IDs ajenos, citas inválidas en dictámenes o cobertura incompleta siguen
+siendo errores. Las pruebas de una selección que no superan el validador se dejan
+pendientes y auditadas; no se reparan para aprobarlas. Toda selección válida sigue necesitando las siete comprobaciones
+y verificación SQL. Reducir errores mediante degradación no significa mejorar por
+sí solo el razonamiento del modelo.
+
+Nemotron devuelve los candidatos ordenados de mejor base técnica a peor, aunque
+ninguno sea seleccionable automáticamente. `mini_pai_revision.opciones` utiliza ese
+orden cuando hay evaluación válida y completa; excluye incompatibles y muestra tres.
+Si la evaluación falla, conserva el orden de recuperación e informa el fallo. El
+ordenamiento es una propuesta del modelo, no una prueba de equivalencia ni garantía
+universal de que las tres opciones sean las mejores. Debe medirse con la muestra.
+
+
+El contrato de IA incluye `orden_revision`, una permutación completa de los IDs
+recuperados. Python verifica tipos, cobertura y ausencia de duplicados, y materializa
+ese orden en el array de dictámenes validado. El formato del JSON de selección
+persistido y del Excel sigue siendo el existente; no requiere nuevas decisiones del
+usuario. Las instrucciones de comparación se compactaron para evitar repetir los
+criterios semánticos que ya contiene la skill. Las respuestas inválidas de extracción
+se conservan para diagnóstico con el motivo preciso del atributo o consulta.
+
+
+### Verificación de las correcciones
+
+Pasaron **127 pruebas**. La muestra de 20 y las comprobaciones focales consolidadas
+quedaron con cuatro propuestas IA revalidadas/verificadas en SQL, trece pendientes
+y tres búsquedas vacías, sin errores operativos. Cuatro propuestas guardadas se
+revalidaron sin inferencia adicional tras aceptar citas reales opcionales en
+no_aplica; no se inventó evidencia ni se considera esa revalidación tiempo de IA.
+No_aplica sigue bloqueado para aspectos esenciales o requisitos explícitos.
+
+Los puestos nominados de `orden_revision` situaron entre las tres opciones las
+matrices preferidas que estaban quinta/cuarta/quinta en demolición, cimbra y acero
+No.8. Pedir solo una lista ordenada no funcionó de forma fiable y se descartó.
+Los controles piedra/concreto y plantilla 6 cm frente a 3/4/5 cm no se aprobaron.
+La nueva comparación completa tomó 349.760 s frente a 357.936 s anteriores, pero
+ahora había 17 conceptos con candidatos frente a 14: no es una comparación
+controlada de velocidad ni un nuevo total de producción. Hubo reintentos focales
+de planificación y de contrato; falta medir una ejecución limpia de extremo a extremo.
+
+El Excel de revisión usa esas cuatro selecciones IA y siete elecciones delegadas
+para la prueba: once matrices y nueve originales. Se conservaron columnas,
+jerarquía y datos; el exportador y el SQL no cambiaron. Los datos privados y reportes
+quedan fuera de Git. La recuperación de cinco candidatos aún puede omitir una matriz
+adecuada (ocurrió con el acero 5/16 de la fila 34); ordenar tres no resuelve esa pérdida.
+
+En un aspecto opcional realmente no aplicable, una cita adicional se admite solo
+si pertenece al cliente y al candidato elegidos; no se elimina para pasar el control.
+Los aspectos esenciales y las especificaciones explícitas siguen exigiendo pruebas,
+y una cita inventada se rechaza también en no_aplica. Este ajuste corrige una
+restricción de formato, no una diferencia técnica ni la falta de evidencia exigible.

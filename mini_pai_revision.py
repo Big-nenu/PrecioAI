@@ -8,9 +8,13 @@ from mini_pai_confirmar import seleccion_validada, sin_matriz_validada
 
 
 def opciones(busqueda):
-    """Conserva el orden de recuperación; excluye incompatibles declarados por IA."""
+    """Usa el orden técnico de la evaluación válida; sin ella conserva recuperación."""
     dictamenes = {c['IdCodigo']: c for c in busqueda.get('evaluacion_ia', {}).get('candidatos', [])}
-    return [(c, dictamenes.get(c['IdCodigo'], {})) for c in busqueda.get('candidatos', [])
+    candidatos = list(busqueda.get('candidatos', []))
+    orden = {identificador: n for n, identificador in enumerate(dictamenes)}
+    if set(dictamenes) == {c['IdCodigo'] for c in candidatos} and not busqueda.get('error_ia'):
+        candidatos.sort(key=lambda c: orden[c['IdCodigo']])
+    return [(c, dictamenes.get(c['IdCodigo'], {})) for c in candidatos
             if dictamenes.get(c['IdCodigo'], {}).get('dictamen') != 'incompatible'][:3]
 
 

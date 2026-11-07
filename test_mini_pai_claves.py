@@ -53,7 +53,7 @@ class PruebasClavesIA(unittest.TestCase):
             with self.subTest(caso=caso),self.assertRaises(ValueError): claves.validar_plan(plan,r)
 
     def test_consulta_no_es_descripcion_entera_ni_puede_superar_los_limites(self):
-        for consultas in ([],['concreto hecho obra'],['concreto']*2,['uno dos tres cuatro cinco seis siete ocho nueve'],['x'*121]):
+        for consultas in ([],['concreto hecho en obra'],['concreto']*2,['uno dos tres cuatro cinco seis siete ocho nueve'],['x'*121]):
             plan=self.plan();plan['consultas']=consultas
             with self.assertRaises(ValueError): claves.validar_plan(plan,self.registro())
 

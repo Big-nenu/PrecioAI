@@ -163,3 +163,14 @@ null), y `mini_pai_exportar.py --final` entrega Excel más Markdown. Una búsque
 válida vacía conserva código/descripción del cliente en principales y auxiliares;
 un fallo no equivale a búsqueda vacía. Códigos ausentes se solicitan antes del final.
 Ver formatos de respuestas y comandos en [README.md](README.md#flujo-vigente-con-revisión-del-usuario-2026-11-06).
+
+
+### Validación y orden técnico de la revisión
+
+La consulta amplia admite hasta tres palabras para actividades compuestas. La
+evidencia numérica se valida con la convención documentada en README (miles con
+coma, decimales y fracciones), conservando los originales. Tras comparar, las tres
+opciones siguen el orden técnico devuelto por Nemotron, en vez de recortar primero
+el orden SQL. Una evaluación inválida conserva el orden de recuperación e informa
+el error. Las contradicciones internas se dejan pendientes con propuesta auditada;
+no se transforman en aprobaciones. Ver los límites de formato en README.

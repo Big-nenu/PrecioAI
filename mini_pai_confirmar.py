@@ -3,7 +3,6 @@ import argparse
 from contextlib import nullcontext
 from copy import deepcopy
 from datetime import datetime, timezone
-from decimal import Decimal
 import hashlib
 import json
 import re
@@ -12,6 +11,7 @@ from pathlib import Path
 from buscar_conceptos import conectar_sql
 from mini_pai_buscar import validar_entrada
 from ranking_conceptos import normalizar
+from numeros_tecnicos import numeros
 
 
 CAMPOS_SQL = ("IdCodigo", "Codigo", "DescripcionLarga", "IdUnidad", "IdTipo", "unidad_catalogo")
@@ -65,8 +65,10 @@ def validar_evaluacion_ia(registro, busqueda, evaluacion):
             raise ValueError("Selección con diferencias, incertidumbre o comprobaciones incompletas")
         aspectos.add(p["aspecto"])
         if p["estado"] == "no_aplica":
-            if p["aspecto"] in ("procedimiento", "alcance", "unidad") or p["cliente"] != "" or p["catalogo"] != "":
+            if p["aspecto"] in ("procedimiento", "alcance", "unidad"):
                 raise ValueError("No_aplica no puede ocultar un requisito esencial")
+            if not cita(p['cliente'], registro['descripcion']) or not cita(p['catalogo'], c['DescripcionLarga']):
+                raise ValueError('No_aplica contiene citas ajenas al concepto o candidato')
             t = normalizar(registro["descripcion"])
             if ((p["aspecto"] == "espesor" and "espesor" in t)
                     or (p["aspecto"] == "resistencia" and re.search(r"f\s*['’]?\s*c|kg\s*/\s*cm", t))
@@ -80,8 +82,6 @@ def validar_evaluacion_ia(registro, busqueda, evaluacion):
                     or not cita(p["cliente"], origen) or not cita(p["catalogo"], destino)):
                 raise ValueError("Comprobación sin citas verificables")
             if p["aspecto"] in ("dimensiones", "espesor", "resistencia"):
-                def numeros(texto):
-                    return {Decimal(n.replace(",", ".")) for n in re.findall(r"\d+(?:[.,]\d+)?", texto)}
                 if numeros(p["cliente"]) != numeros(p["catalogo"]):
                     raise ValueError("Valores técnicos distintos en las citas; no se infieren conversiones")
             if p["aspecto"] == "materiales":

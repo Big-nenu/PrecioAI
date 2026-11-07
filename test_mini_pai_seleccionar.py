@@ -31,6 +31,7 @@ class PruebasSeleccionIA(unittest.TestCase):
 
     def respuesta(self, evaluacion=None):
         e=deepcopy(evaluacion or self.evaluacion())
+        e['orden_revision'] = {f'puesto_{n}':c['IdCodigo'] for n,c in enumerate(e['candidatos'],1)}
         for p in e["candidatos"]+e["comprobaciones"]:
             if p["cliente"]: p["cliente"]="CU" if p.get("aspecto")=="unidad" else "C0"
             if p["catalogo"]: p["catalogo"]="KU10" if p.get("aspecto")=="unidad" else "K10_0"
