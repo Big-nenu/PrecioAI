@@ -9,7 +9,20 @@ Mini-PAI es una skill del repositorio más scripts Python. No requiere instalar 
 3. Tener la configuración SQL local existente. No copiar secretos al prompt ni a Git. El puerto TCP dinámico puede cambiar: comprobar la conexión antes de medir y no reconfigurar SQL Server para hacer la prueba.
 4. Elegir un directorio de salida nuevo y conservar intacto el Excel de entrada. No reutilizar resultados obsoletos para medir una ejecución limpia.
 
-## Prompt para pegar en Cline
+## Catálogo tabular completo: ruta comprobada
+
+Para una tabla de columnas estables con encabezados reconocibles, sin continuaciones entre filas, usar:
+
+```powershell
+New-Item -ItemType Directory -Path salidas/tabla-001
+python mini_pai_interpretar.py "RUTA_DEL_EXCEL" --por-tabla --salida salidas/tabla-001/interpretacion.json
+```
+
+El ejemplo real de CATALOGO dio 78 conceptos, 15 agrupadores y 312 campos cotejados sin diferencias. Los límites y evidencia están en [EXTRACCION-TABULAR.md](EXTRACCION-TABULAR.md). No combinar con rangos ni --hoja; comprobar el alcance si hay otras hojas. No dar por válida esta ruta si hay varias tablas, cambios de columnas o continuaciones de descripción entre filas.
+
+La skill instalada ya incluye esta elección de ruta. No es necesario que el usuario acomode columnas ni cree un mapeo. Si falla, conservar el error; no reemplazar el JSON con una narración. La conversación completa de Cline sigue pendiente de prueba.
+
+## Prueba anterior: muestra de veinte por bloques
 
 Sustituir las dos rutas entre corchetes. El rango corresponde exclusivamente al presupuesto de referencia probado; en otro Excel se debe inspeccionar la estructura antes de escoger hoja y filas.
 

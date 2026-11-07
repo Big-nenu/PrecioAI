@@ -4,6 +4,8 @@ Para presupuestos y ConstruBase, leer skills/analizar-presupuesto/SKILL.md y
 mini-pai/GUIA-CLINE.md. Ejecutar los módulos mini_pai_* desde la raíz del proyecto.
 No utilizar el prototipo leer_presupuesto.py para un libro de estructura variable.
 Inspeccionar todas las hojas antes de afirmar un conteo; no heredar conteos previos.
+Para una tabla estable con cabeceras reconocibles, usar la ruta --por-tabla del
+intérprete según la skill. Cotejar su alcance; no tratar otras hojas como procesadas.
 ConstruBase usa SQL Server local en lectura: no requiere autenticaciones de servicios
 externos ni Composio. Un fallo debe corresponder a una herramienta realmente ejecutada.
 No afirmar que se ejecutó lo que solo se planeó o se leyó. Guardar evidencia por etapa.

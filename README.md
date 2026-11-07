@@ -24,9 +24,9 @@ Se prevén suscripciones con distinto alcance: Mini-PAI como opción de menor co
 
 Existen módulos de inspección Excel, interpretación IA por bloques con evidencia de celdas, búsqueda SQL de candidatos, comparación técnica, confirmación, revisión y exportación Excel más Markdown. ConstruBase se consulta en modo lectura. El usuario comprobó el copiado del formato generado a Neodata; ese formato se conserva.
 
-**Todavía no está validado el flujo completo para uso autónomo.** La [auditoría de extracción](mini-pai/AUDITORIA-EXTRACCION.md) reprodujo fallos reales de clasificación y campos omitidos; el intento completo se detuvo en filas 71–75. Los ajustes focales de instrucciones no resolvieron todos los controles y se retiraron. La mezcla concreta de cantidades entre filas sí fue rechazada por la validación existente.
+**Todavía no está validado el flujo completo para uso autónomo.** Después de la [auditoría inicial](mini-pai/AUDITORIA-EXTRACCION.md), la nueva [ruta tabular](mini-pai/EXTRACCION-TABULAR.md) recuperó 78 conceptos y 15 agrupadores: 312 campos cotejados sin diferencias. La extracción tardó 39.467 s con Nemotron; no incluye SQL, selección ni exportación. Es una ruta explícita para una tabla estable, no una garantía para todos los formatos.
 
-El exportador final ahora también rechaza códigos con descripciones distintas entre originales conservados y matrices seleccionadas. Pasaron 129 pruebas; el formato Excel se conserva.
+El exportador final rechaza códigos con descripciones distintas entre originales conservados y matrices seleccionadas. Pasaron 137 pruebas; el formato Excel se conserva.
 
 Nemotron sigue como modelo principal. Hay ensayos anteriores y herramientas de laboratorio, pero falta comparar la combinación propuesta de embeddings y evaluadores en el flujo actual, con los mismos datos y mediciones de calidad, tiempo y memoria. Tener modelos descargados no significa que estén integrados o evaluados.
 

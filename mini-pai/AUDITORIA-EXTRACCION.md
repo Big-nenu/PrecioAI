@@ -1,6 +1,8 @@
 # Auditoría de extracción — 7 de noviembre de 2026
 
-## Conclusión
+> Actualización: la [ruta tabular](EXTRACCION-TABULAR.md) ya extrajo y cotejó los 78 conceptos. El diagnóstico siguiente corresponde al intento anterior por bloques, cuyos límites permanecen.
+
+## Conclusión inicial
 
 La lectura de celdas conserva los datos originales, pero **la interpretación IA por bloques todavía no es fiable para este presupuesto completo**. No basta corregir el resumen de Cline. Hay errores semánticos reales al clasificar agrupadores y omisiones de campos que las validaciones actuales permiten como valores ausentes.
 

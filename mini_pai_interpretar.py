@@ -365,19 +365,26 @@ def main():
     parser.add_argument("archivo")
     parser.add_argument("--salida", help="Archivo JSON de salida")
     parser.add_argument("--hoja", help="Limitar la prueba a una hoja por su nombre")
+    parser.add_argument("--por-tabla", action="store_true", help="Ruta de una tabla estable: IA identifica cabeceras y grupos; Python recupera campos")
     parser.add_argument("--fila-inicial", type=int, default=1)
     parser.add_argument("--fila-final", type=int)
     parser.add_argument("--tamano-bloque", type=int, default=5,
                         help="Máximo de filas no vacías nuevas por petición (por defecto 5)")
     args = parser.parse_args()
+    if args.por_tabla and (args.hoja is not None or args.fila_inicial != 1 or args.fila_final is not None):
+        parser.error("--por-tabla procesa una tabla completa; no combinar con rangos o --hoja")
     if args.salida:
         origen, destino = Path(args.archivo), Path(args.salida)
         if (origen.resolve() == destino.resolve()
                 or origen.exists() and destino.exists() and origen.samefile(destino)):
             parser.error("La salida debe ser distinta del Excel original")
-    datos = interpretar(args.archivo, hoja=args.hoja,
-                        fila_inicial=args.fila_inicial, fila_final=args.fila_final,
-                        tamano_bloque=args.tamano_bloque)
+    if args.por_tabla:
+        from mini_pai_tabla import interpretar_tabla
+        datos = interpretar_tabla(args.archivo)
+    else:
+        datos = interpretar(args.archivo, hoja=args.hoja,
+                            fila_inicial=args.fila_inicial, fila_final=args.fila_final,
+                            tamano_bloque=args.tamano_bloque)
     texto = json.dumps(datos, ensure_ascii=False, indent=2)
     if args.salida:
         Path(args.salida).write_text(texto, encoding="utf-8")

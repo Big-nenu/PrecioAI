@@ -26,7 +26,17 @@ del contrato de esa etapa; no simules ejecución de herramientas.
    exige hoja Conceptos y columnas fijas. No confíes en conteos de respuestas previas.
    Cuenta conceptos, encabezados y totales por separado; un resultado parcial debe
    indicar su rango. Los 20 conceptos de la guía son una muestra, no un límite global.
-3. Ejecuta el flujo con los scripts locales y sus resultados guardados en una
+3. Para un catálogo de una tabla estable con cabeceras de descripción, unidad y
+   cantidad entre las primeras 20 filas no vacías, usar
+   `python mini_pai_interpretar.py archivo.xlsx --por-tabla --salida carpeta/interpretacion.json`.
+   Comprobar que exista `mini_pai_tabla.py`. Esta ruta usa IA para identificar
+   columnas y agrupadores; Python recupera los campos íntegros de cada fila.
+   No mezclarla con rangos ni --hoja. Otras hojas con datos se declaran pendientes,
+   no procesadas. Si falla, informar el error y no fingir una interpretación completa.
+   No darla por válida si hay cambios de columnas o descripciones repartidas entre filas.
+   La ruta por bloques conserva sus comandos para otras estructuras, pero continúa
+   en validación; no usar un resumen del chat para corregir sus campos.
+   Ejecuta el flujo con los scripts locales y sus resultados guardados en una
    carpeta nueva. Una búsqueda individual usaría palabras principales, no todos
    los atributos unidos. [] solo demuestra que esa consulta no recuperó filas.
 4. ConstruBase es SQL Server local. Usa la configuración local existente y SELECT.

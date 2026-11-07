@@ -64,17 +64,19 @@ El Markdown distingue:
 | Componente | Implementado | Límite actual |
 | --- | --- | --- |
 | Inspección | Lectura de hojas y celdas sin columnas fijas | Inspeccionar no equivale a identificar todos los conceptos |
-| Interpretación | IA por bloques, evidencia, materialización y validación de jerarquía | Falta comprobar presupuestos completos y formatos diversos |
+| Interpretación | Ruta tabular comprobada en 78 conceptos; bloques conservados; evidencia y jerarquía | Ruta tabular limitada a una tabla estable; otros formatos y bloques pendientes |
 | Recuperación | Consultas propuestas por IA, SQL parametrizado y candidatos revisables | AND/LIKE y ranking limitado pueden dejar fuera matrices útiles |
 | Comparación | Nemotron, evidencia técnica, validaciones y verificación SQL | Casos dudosos requieren revisión; no garantiza equivalencia universal |
 | Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
 | Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
 
-Tras la auditoría pasaron **129 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+Tras la auditoría pasaron **137 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
 
-La [auditoría de extracción del 7 de noviembre](AUDITORIA-EXTRACCION.md) reprodujo fallos reales con Nemotron: encabezados omitidos o mal clasificados y once campos presentes tratados como ausentes en los 44 conceptos aceptados hasta la fila 70. La ejecución se detuvo en el bloque 71–75 tras 285.779 s y veinte llamadas. No es una extracción completa ni una medición del flujo final. La cantidad cruzada entre filas fue rechazada por la validación existente.
+La [auditoría inicial](AUDITORIA-EXTRACCION.md) reprodujo fallos de clasificación y campos omitidos en la ruta por bloques. La nueva [extracción tabular](EXTRACCION-TABULAR.md), activada con `--por-tabla`, recuperó **78 conceptos, 15 agrupadores y 312 campos sin diferencias** respecto al Excel. Tardó **39.467 s** y tres llamadas con un reintento, solo interpretación, sin SQL ni exportación.
 
-Los cambios experimentales de instrucciones y contexto no resolvieron todos los controles y se retiraron. Se conserva la corrección comprobada del exportador para conflictos de códigos, sin cambiar el formato. **Falta corregir el contrato de extracción antes de avanzar a SQL.**
+La IA identifica cabeceras y agrupadores; Python recupera los campos completos desde columnas identificadas para ese documento. No hay letras fijas ni vocabulario de un cliente. La ruta anterior permanece para no alterar otros formatos sin comprobarlos. El nuevo modo requiere una tabla estable, cabeceras de descripción/unidad/cantidad entre las primeras 20 filas no vacías y revisión en formatos nuevos. No está validado para continuaciones entre filas o cambios de columnas.
+
+La skill instalada de Cline se sincronizó con la versionada. Su conversación completa todavía no se ha probado; los resultados anteriores proceden de ejecución nativa de los módulos.
 
 ### Mediciones anteriores
 
@@ -93,6 +95,8 @@ Pasadas, repeticiones y revalidaciones están en el [historial](historial/README
 Falta evaluar la combinación propuesta de embeddings, D1/D3 y Nemotron sobre los mismos conceptos y candidatos, midiendo calidad, tiempo y memoria. Tener modelos descargados no equivale a tenerlos integrados o probados en este flujo. Cambiar modelos no sustituye corregir errores de integridad.
 
 ## Desarrollo y uso actual
+
+Para el catálogo tabular completo usar primero [la ruta --por-tabla](EXTRACCION-TABULAR.md). Los comandos por bloques de esta sección conservan el comportamiento anterior y no sustituyen la nueva comprobación.
 
 Los módulos siguen en la raíz: [mapa del código](../docs/ESTRUCTURA.md). La [skill versionada](../skills/analizar-presupuesto/SKILL.md) forma parte de las instrucciones y contratos; no es un servidor MCP ni garantiza obediencia del asistente.
 
@@ -119,7 +123,7 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 
 ## Próximo trabajo, por orden
 
-1. Auditar inspección → interpretación → datos guardados en el presupuesto actual. Comprobar cobertura, jerarquía y correspondencia de celdas; localizar y corregir la mezcla antes de confiar en búsquedas posteriores.
+1. Usar la interpretación tabular cotejada del presupuesto actual para probar búsqueda y comparación técnica. Validar otros formatos antes de declarar resuelta la extracción general.
 2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
 3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel y reporte; medir cada etapa y revisar el pegado.
 4. Comparar los modelos pendientes sin sustituir Nemotron hasta demostrar mejora; conservar controles de incompatibilidades reales.

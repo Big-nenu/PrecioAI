@@ -72,3 +72,9 @@ Si TEMP del entorno restringido impide las pruebas, dirigir TEMP/TMP a un direct
 Ver [AUDITORIA-EXTRACCION.md](AUDITORIA-EXTRACCION.md). La ejecución de referencia falló en filas 71–75 después de 285.779 s y veinte llamadas. En los 44 conceptos parciales hasta fila 70 hubo once campos omitidos y errores de jerarquía; no existe un JSON final válido. Los focos no resolvieron todos los controles y los cambios experimentales del intérprete se retiraron. Sigue pendiente corregir la extracción, antes de SQL y modelos adicionales.
 
 La corrección definitiva de esta auditoría está en el exportador: impide códigos iguales con descripciones distintas también entre originales conservados y matrices seleccionadas. Pasaron 129 pruebas. Evidencia privada bajo salidas/auditoria-extraccion-2026-11-07/. No se modificó presupuesto, configuración, ConstruBase, formato Excel ni skill instalada; no se generó un Excel nuevo.
+
+## Extracción tabular comprobada
+
+La [nueva ruta --por-tabla](EXTRACCION-TABULAR.md) recuperó 78 conceptos, 15 agrupadores y 312 campos sin diferencias contra el Excel, en 39.467 s y tres llamadas incluido reintento. El presupuesto conserva SHA256. Pasaron 137 pruebas. La ruta antigua por bloques no se reemplazó; otros formatos requieren validación. Skill global y versionada sincronizadas; conversación Cline aún no probada.
+
+Evidencia privada: salidas/estructura-tablas-2026-11-07/ejecucion-02/. Los ensayos del directorio padre y ejecución 01 incluyen fallos, no usarlos como resultado final. El siguiente paso del presupuesto actual es búsqueda y selección usando el JSON cotejado; no se ha generado su Excel final ni probado otros modelos.

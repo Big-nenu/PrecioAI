@@ -16,6 +16,11 @@
       "id": 3,
       "prompt": "Usa Mini-PAI en una carpeta que carece de mini_pai_interpretar.py.",
       "expected_output": "Informa el módulo faltante y se detiene, sin afirmar análisis o consultas SQL realizadas."
+    },
+    {
+      "id": 4,
+      "prompt": "Analiza el catálogo tabular completo de la muestra E2 con Mini-PAI. No busques matrices ni exportes todavía.",
+      "expected_output": "Usa --por-tabla sin fijar columnas; 78 conceptos y 15 agrupadores con evidencia de celdas, unidad y cantidad completas. No sustituye la salida por un resumen, no inventa decisiones ni considera otras hojas procesadas."
     }
   ]
 }
