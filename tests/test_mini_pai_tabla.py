@@ -42,6 +42,103 @@ class PruebasTabla(unittest.TestCase):
         self.assertFalse(datos["alcance"]["parcial"])
         self.assertEqual((origen, estructura, plan), antes)
 
+    def test_un_grupo_pendiente_solo_se_admite_durante_la_planificacion(self):
+        origen, estructura, plan = self.ejemplo()
+        origen['hojas'][0]['filas'] = origen['hojas'][0]['filas'][:5]
+        plan['resumen_desde'] = None
+        temporal = tabla.materializar_tabla(origen, estructura, plan, _en_curso=True)
+        self.assertTrue(temporal['alcance']['parcial'])
+        with self.assertRaisesRegex(ValueError, 'Agrupadores sin conceptos'):
+            tabla.materializar_tabla(origen, estructura, plan)
+
+    def test_grupo_cerrado_vacio_no_se_admite_en_planificacion(self):
+        origen, estructura, plan = self.ejemplo()
+        plan['filas']['3']['tipo'] = 'partida'
+        plan['filas']['5'] = dict(tipo='partida',padre=None,motivo=None)
+        origen['hojas'][0]['filas'] = [r for r in origen['hojas'][0]['filas'] if r['fila'] != 4]
+        with self.assertRaisesRegex(ValueError, 'Agrupadores sin conceptos'):
+            tabla.materializar_tabla(origen, estructura, plan, _en_curso=True)
+
+    def test_clasificacion_recibe_contexto_y_contrato_cerrado(self):
+        origen, estructura, plan = self.ejemplo()
+        origen['hojas'][0]['filas'][2]['formatos']={'K3':dict(estilo=7,negrita=True)}
+        wire = dict(filas=deepcopy(plan['filas']),dudas=[])
+        wire['filas'].update({str(n):dict(tipo='omitir',padre=None,motivo='Resumen final') for n in (7,8)})
+        wire['filas']['7']['tipo']='resumen'
+        for d in wire['filas'].values():d.pop('padre')
+        with patch.object(tabla,'consultar_ia',return_value=json.dumps(wire)) as ia:
+            salida = tabla.clasificar_tabla(origen,estructura)
+        cuerpo=json.loads(ia.call_args.args[0][1]['content'])
+        self.assertEqual({r['fila'] for r in cuerpo['trabajos_cercanos']},{4,6})
+        self.assertEqual(cuerpo['filas_sin_medicion'][0]['formato']['descripcion'],dict(estilo=7,negrita=True))
+        esquema=ia.call_args.kwargs['esquema']
+        self.assertEqual(set(esquema['properties']['filas']['required']),{'3','5','7','8'})
+        tipos = lambda n: set(esquema['properties']['filas']['properties'][n]['properties']['tipo']['enum'])
+        self.assertNotIn('resumen',tipos('3'))
+        self.assertIn('resumen',tipos('7'))
+        self.assertEqual([r['fila'] for r in salida['registros']],[3,4,5,6])
+
+    def test_documento_no_se_convierte_en_partida_y_no_pierde_sus_grupos(self):
+        origen, estructura, _ = self.ejemplo()
+        origen['hojas'][0]['filas'] = [origen['hojas'][0]['filas'][1],
+            dict(fila=3,celdas={'C3':'OBRA','K3':'Descripción global del contrato'}),
+            dict(fila=4,celdas={'C4':'A','K4':'Grupo de trabajos'}),
+            dict(fila=5,celdas={'C5':'001','K5':'Trabajo concreto','H5':'M2','Q5':'2'}),
+            dict(fila=6,celdas={'C6':'A.1','K6':'Sección de trabajos'}),
+            dict(fila=7,celdas={'C7':'002','K7':'Otro trabajo','H7':'M2','Q7':'3'})]
+        wire=dict(dudas=[],filas={
+            '3':dict(tipo='documento',padre=None,motivo='Título general de la obra'),
+            '4':dict(tipo='partida',padre=None,motivo=None),
+            '6':dict(tipo='subpartida',padre=4,motivo=None)})
+        for d in wire['filas'].values():d.pop('padre')
+        wire['filas']=dict(reversed(list(wire['filas'].items())))
+        with patch.object(tabla,'consultar_ia',return_value=json.dumps(wire)):
+            resultado=tabla.clasificar_tabla(origen,estructura)
+        self.assertEqual([(r['fila'],r['tipo'],r['padre']) for r in resultado['registros']],
+                         [(4,'partida',None),(5,'concepto',4),(6,'subpartida',4),(7,'concepto',6)])
+        self.assertIn(3,[r['fila'] for r in resultado['excluidas']])
+
+    def test_bloques_conservan_partida_vigente_y_todos_los_trabajos(self):
+        origen, estructura, _ = self.ejemplo()
+        filas=[origen['hojas'][0]['filas'][1]]
+        for i in range(23):
+            n=3+2*i
+            filas += [dict(fila=n,celdas={f'C{n}':f'S{i}',f'K{n}':'Grupo'}),
+                      dict(fila=n+1,celdas={f'C{n+1}':f'P{i}',f'K{n+1}':'Trabajo',f'H{n+1}':'M2',f'Q{n+1}':'1'})]
+        origen['hojas'][0]['filas']=filas
+        def responder(mensajes,**kw):
+            datos=json.loads(mensajes[1]['content'])
+            return json.dumps(dict(dudas=[],filas={str(r['fila']):dict(
+                tipo='partida' if r['fila']==3 else 'subpartida',motivo=None)
+                for r in datos['filas_sin_medicion']}))
+        with patch.object(tabla,'consultar_ia',side_effect=responder) as ia:
+            resultado=tabla.clasificar_tabla(origen,estructura)
+        self.assertEqual(ia.call_count,3)
+        primero=json.loads(ia.call_args_list[0].args[0][1]['content'])
+        self.assertEqual([r['fila'] for r in primero['anticipacion']],[23,25])
+        self.assertNotIn('23',ia.call_args_list[0].kwargs['esquema']['properties']['filas']['properties'])
+        self.assertEqual(sum(r['tipo']=='concepto' for r in resultado['registros']),23)
+        segundo=json.loads(ia.call_args_list[1].args[0][1]['content'])
+        self.assertEqual(segundo['encabezados_vigentes'][0]['fila'],3)
+        self.assertEqual([r['tipo'] for r in segundo['ejemplos_anteriores']],['partida','subpartida','subpartida'])
+        self.assertFalse(resultado['alcance']['parcial'])
+
+    def test_formato_original_es_contexto_opcional_sin_cambiar_valores(self):
+        from openpyxl import Workbook
+        from openpyxl.styles import Font
+        with tempfile.TemporaryDirectory() as carpeta:
+            ruta=Path(carpeta)/'original.xlsx'
+            libro=Workbook();libro.active['C1']='Grupo';libro.active['C1'].font=Font(bold=True)
+            libro.active['C2']='Trabajo';libro.save(ruta);libro.close()
+            original=ruta.read_bytes()
+            simple=interpretar.inspeccionar_excel(ruta)
+            con_formato=interpretar.inspeccionar_excel(ruta,formatos=True)
+            self.assertEqual(simple['hojas'][0]['filas'][0]['celdas'],con_formato['hojas'][0]['filas'][0]['celdas'])
+            self.assertNotIn('formatos',simple['hojas'][0]['filas'][0])
+            self.assertTrue(con_formato['hojas'][0]['filas'][0]['formatos']['C1']['negrita'])
+            self.assertFalse(con_formato['hojas'][0]['filas'][1]['formatos']['C2']['negrita'])
+            self.assertEqual(original,ruta.read_bytes())
+
     def test_rechaza_columnas_inventadas_duplicadas_y_cabecera_falsa(self):
         for cambio in ("celda", "duplicada", "fila", "bool", "sin_unidad"):
             with self.subTest(cambio=cambio):
@@ -98,6 +195,10 @@ class PruebasTabla(unittest.TestCase):
 
     def test_proveedor_y_reintento_conservan_datos_reales(self):
         origen, estructura, plan = self.ejemplo()
+        plan = dict(filas=deepcopy(plan['filas']),dudas=[])
+        plan['filas'].update({'7':dict(tipo='resumen',padre=None,motivo='Resumen final'),
+                              '8':dict(tipo='omitir',padre=None,motivo='Resumen final')})
+        for d in plan['filas'].values():d.pop('padre')
         incompleto = deepcopy(plan)
         del incompleto["filas"]["5"]
         with patch.object(tabla, "inspeccionar_excel", return_value=origen), patch.object(

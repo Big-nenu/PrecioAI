@@ -1,6 +1,7 @@
 """Flujo local reanudable: Excel -> candidatos -> preguntas -> Excel y Markdown."""
 import argparse
 from contextlib import closing, nullcontext
+from copy import deepcopy
 import hashlib
 import json
 import os
@@ -72,6 +73,22 @@ def pendientes(datos):
     return faltan
 
 
+def muestra(datos, limite):
+    """Acota búsqueda y evaluación, conservando íntegro el checkpoint de extracción."""
+    if limite is None:
+        return datos
+    if type(limite) is not int or limite < 1:
+        raise ValueError('El límite de conceptos debe ser un entero positivo')
+    conceptos = [i for i,r in enumerate(datos['registros']) if r['tipo']=='concepto']
+    salida = deepcopy(datos)
+    if len(conceptos) > limite:
+        salida['registros'] = salida['registros'][:conceptos[limite-1]+1]
+        salida['alcance']['parcial'] = True
+    salida['alcance'].update(limite_conceptos=limite,conceptos_interpretados=len(conceptos),
+                            conceptos_procesados=min(limite,len(conceptos)))
+    return salida
+
+
 def ejecutar(args):
     sesion = Path(args.sesion).resolve()
     sesion.mkdir(parents=True, exist_ok=True)
@@ -92,12 +109,12 @@ def continuar(args, sesion):
         verificar(estado, sesion)
         if args.archivo and str(Path(args.archivo).resolve()) != estado['entrada']:
             raise ValueError('La sesión corresponde a otro Excel')
-        for campo in ('indice', 'env', 'hoja', 'fila_inicial', 'fila_final', 'por_tabla'):
-            valor = getattr(args, campo)
+        for campo in ('indice', 'env', 'hoja', 'fila_inicial', 'fila_final', 'por_tabla', 'limite_conceptos'):
+            valor = getattr(args, campo, None)
             if valor is not None:
                 if campo in ('indice', 'env'):
                     valor = str(Path(valor).resolve())
-                if valor != estado['parametros'][campo]:
+                if valor != estado['parametros'].get(campo):
                     raise ValueError('No cambiar parámetros de una sesión existente: ' + campo)
     else:
         if any(p.name != 'sesion.lock' for p in sesion.iterdir()):
@@ -107,7 +124,7 @@ def continuar(args, sesion):
         parametros = dict(indice=str(Path(args.indice).resolve()),
             env=str(Path(args.env).resolve()) if args.env else str(ROOT / '.env'),
             hoja=args.hoja, fila_inicial=args.fila_inicial or 1, fila_final=args.fila_final,
-            por_tabla=bool(args.por_tabla))
+            por_tabla=bool(args.por_tabla),limite_conceptos=getattr(args,'limite_conceptos',None))
         if parametros['por_tabla'] and (args.hoja or args.fila_inicial is not None or args.fila_final is not None):
             raise ValueError('--por-tabla no admite hoja ni rangos')
         entrada = str(Path(args.archivo).resolve())
@@ -138,6 +155,7 @@ def continuar(args, sesion):
     interpretacion = etapa('interpretacion', lambda: interpretar_tabla(estado['entrada']) if parametros['por_tabla']
         else interpretar(estado['entrada'], hoja=parametros['hoja'], fila_inicial=parametros['fila_inicial'],
                          fila_final=parametros['fila_final']))
+    interpretacion = muestra(interpretacion, parametros.get('limite_conceptos'))
 
     def recuperar():
         with closing(conectar_sql(parametros['env'])) as conexion:
@@ -232,11 +250,14 @@ def main():
     parser.add_argument('--hoja')
     parser.add_argument('--fila-inicial', type=int)
     parser.add_argument('--fila-final', type=int)
+    parser.add_argument('--limite-conceptos', type=int, help='Interpreta el original completo; limita solo búsqueda/evaluación')
     decision = parser.add_mutually_exclusive_group()
     decision.add_argument('--decisiones', help='JSON existente con elecciones reales de usuario')
     decision.add_argument('--conservar-originales', action='store_true', help='Conservar TODOS, incluso propuestas IA')
     parser.add_argument('--revisor')
     args = parser.parse_args()
+    if args.limite_conceptos is not None and args.limite_conceptos < 1:
+        parser.error('--limite-conceptos debe ser positivo')
     if args.conservar_originales and (not args.revisor or not args.revisor.strip()):
         parser.error('--conservar-originales requiere --revisor')
     try:

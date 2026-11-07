@@ -38,23 +38,27 @@ def esquema_interpretacion(inspeccion=None, filas_objetivo=None, contexto=()):
     return esquema
 
 
-def inspeccionar_excel(ruta):
+def inspeccionar_excel(ruta, *, formatos=False):
     """Devuelve celdas no vacías con coordenadas, sin inferir columnas."""
     from openpyxl import load_workbook
 
-    libro = load_workbook(ruta, read_only=True, data_only=True)
+    libro = load_workbook(ruta, read_only=not formatos, data_only=True)
     try:
         hojas = []
         for hoja in libro:
             filas = []
-            for numero, valores in enumerate(hoja.iter_rows(values_only=True), 1):
-                celdas = {}
-                for columna, valor in enumerate(valores, 1):
+            for numero, valores in enumerate(hoja.iter_rows(), 1):
+                celdas, estilos = {}, {}
+                for columna, celda in enumerate(valores, 1):
+                    valor = celda.value
                     if valor is not None and str(valor).strip():
                         from openpyxl.utils import get_column_letter
-                        celdas[f"{get_column_letter(columna)}{numero}"] = str(valor)
+                        ref = f"{get_column_letter(columna)}{numero}"
+                        celdas[ref] = str(valor)
+                        if formatos:
+                            estilos[ref] = dict(estilo=celda.style_id,negrita=bool(celda.font.bold))
                 if celdas:
-                    filas.append({"fila": numero, "celdas": celdas})
+                    filas.append({"fila": numero, "celdas": celdas, **({"formatos": estilos} if formatos else {})})
             hojas.append({"nombre": hoja.title, "filas": filas})
         return {"archivo": Path(ruta).name, "hojas": hojas}
     finally:

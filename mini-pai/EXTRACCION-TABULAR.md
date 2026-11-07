@@ -1,13 +1,15 @@
 # Extracción tabular de Mini-PAI
 
+La corrección y comprobación más reciente sobre los dos archivos originales está en [ORIGINALES.md](ORIGINALES.md). Las mediciones siguientes conservan el primer ensayo histórico de esta ruta.
+
 ## Qué cambia
 
 La ruta `--por-tabla` evita pedir a la IA que vuelva a elegir cuatro celdas para cada concepto en bloques independientes:
 
 1. Nemotron identifica la hoja y las celdas de encabezado que corresponden a código, descripción, unidad y cantidad.
 2. Python comprueba que esas referencias existan en la cabecera y correspondan a columnas distintas. No hay letras de columna fijadas en el código.
-3. Las filas con descripción, unidad y cantidad se recuperan desde sus propias celdas. La IA clasifica las filas restantes, incluyendo conceptos con campos ausentes, partidas, subpartidas, portada y notas. Recibe el contexto del documento y una vista compacta de la secuencia.
-4. La IA identifica el comienzo del resumen final. Python exige una fila real posterior a todos los trabajos medidos y registra las exclusiones con esa evidencia.
+3. Las filas con descripción, unidad y cantidad se recuperan desde sus propias celdas. La IA clasifica las filas restantes, incluyendo conceptos con campos ausentes, partidas, subpartidas, portada y notas. Recibe el contexto del documento, los trabajos medidos vecinos, los grupos vigentes, los estilos originales de celdas, ejemplos de grupos ya validados y dos encabezados de anticipación. Las filas sin medición se clasifican en bloques de diez, con contrato JSON estructurado y un reintento por bloque. La anticipación no se emite.
+4. La IA distingue explícitamente el rótulo global (`documento`) de los grupos reales, y la fila que anuncia el resumen final (`resumen`). Estos roles se convierten en exclusiones con motivo; no se exportan como partidas ni conceptos. La clasificación del resumen determina su corte, sin pedir otra respuesta contradictoria.  Python exige una fila real posterior a todos los trabajos medidos y registra las exclusiones con esa evidencia.
 5. Se reutilizan `materializar`, `validar` y la validación de jerarquía del intérprete existente. Todos los valores finales se recuperan del Excel original, completos.
 
 No se cambian búsqueda SQL, comparación técnica, modelo, formato Excel ni columnas de salida. No hay dependencias nuevas. La skill de Cline indica cuándo utilizar esta ruta; las llamadas internas de cabeceras y grupos usan los contratos del módulo `mini_pai_tabla.py` y el proveedor existente.
@@ -62,7 +64,7 @@ La evidencia privada está en `salidas/estructura-tablas-2026-11-07/ejecucion-02
 
 Enviar la inspección completa en un solo JSON no funcionó: los logs locales de Ollama registraron entradas de aproximadamente 14 mil tokens recortadas a 6,147. La nueva ejecución compacta registró 1,736, 4,094 y 4,490 tokens de entrada por llamada. El [código de Ollama](https://github.com/ollama/ollama/blob/main/llm/llama_server.go) documenta ese recorte de entradas que exceden el contexto. **No se ha demostrado que explique los errores anteriores por bloques**, que también ocurrieron con entradas más pequeñas.
 
-También se descartaron planes globales demasiado amplios y contratos que mezclaban clasificación con valores por concepto. No se atribuye la mejora a un único ajuste de prompt ni se afirma que desactivar la salida estructurada mejore otros pasos: las cabeceras usan esquema; la respuesta de grupos se valida estrictamente en Python.
+También se descartaron planes globales demasiado amplios y contratos que mezclaban clasificación con valores por concepto. No se atribuye la mejora a un único ajuste de prompt ni se afirma que desactivar la salida estructurada mejore otros pasos: las cabeceras usan esquema; la clasificación actual de grupos también usa esquema y se valida estrictamente en Python.
 
 ## Siguiente paso
 

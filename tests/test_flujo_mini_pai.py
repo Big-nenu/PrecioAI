@@ -76,6 +76,17 @@ class FlujoMiniPaiTests(unittest.TestCase):
         finally:libro.close()
         self.assertFalse((self.sesion/'sesion.lock').exists())
 
+    def test_muestra_limita_solo_etapas_posteriores_y_conserva_ancestros(self):
+        antes = deepcopy(self.datos)
+        acotado = flujo.muestra(self.datos,1)
+        self.assertEqual(self.datos,antes)
+        self.assertEqual([r['fila'] for r in acotado['registros']],[2,3])
+        self.assertTrue(acotado['alcance']['parcial'])
+        self.assertEqual(acotado['alcance']['conceptos_interpretados'],2)
+        self.assertEqual(acotado['alcance']['conceptos_procesados'],1)
+        for limite in (0,-1,True):
+            with self.assertRaises(ValueError):flujo.muestra(self.datos,limite)
+
     def test_fallo_repite_solo_la_etapa_no_terminada(self):
         self.buscar.side_effect=[RuntimeError('Sin SQL'),self.candidatos]
         with self.assertRaisesRegex(RuntimeError,'Sin SQL'):self.iniciar()

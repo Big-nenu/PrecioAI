@@ -64,13 +64,15 @@ El Markdown distingue:
 | Componente | Implementado | Límite actual |
 | --- | --- | --- |
 | Inspección | Lectura de hojas y celdas sin columnas fijas | Inspeccionar no equivale a identificar todos los conceptos |
-| Interpretación | Ruta tabular comprobada en 78 conceptos; bloques conservados; evidencia y jerarquía | Ruta tabular limitada a una tabla estable; otros formatos y bloques pendientes |
+| Interpretación | Ruta tabular comprobada en dos originales; bloques conservados; evidencia y jerarquía | Ruta tabular limitada a una tabla estable; otros formatos y bloques pendientes |
 | Recuperación | Consultas propuestas por IA, SQL parametrizado y candidatos revisables | AND/LIKE y ranking limitado pueden dejar fuera matrices útiles |
 | Comparación | Nemotron, evidencia técnica, validaciones y verificación SQL | Casos dudosos requieren revisión; no garantiza equivalencia universal |
 | Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
 | Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
 
-Tras la auditoría pasaron **145 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+En la revisión actual pasaron **172 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+
+La corrección de metadatos, clasificación por bloques y jerarquía sobre archivos originales se documenta en [ORIGINALES.md](ORIGINALES.md). Las pruebas funcionales conservan originales por elección del usuario y se distinguen de una aprobación técnica de matrices.
 
 La [auditoría inicial](AUDITORIA-EXTRACCION.md) reprodujo fallos de clasificación y campos omitidos en la ruta por bloques. La nueva [extracción tabular](EXTRACCION-TABULAR.md), activada con `--por-tabla`, recuperó **78 conceptos, 15 agrupadores y 312 campos sin diferencias** respecto al Excel. Tardó **39.467 s** y tres llamadas con un reintento, solo interpretación, sin SQL ni exportación.
 
@@ -131,10 +133,10 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 
 ## Próximo trabajo, por orden
 
-1. Corregir y comprobar la clasificación de encabezados y jerarquía en los archivos originales antes de la interfaz. El coordinador ya permite conservar todos los originales para pruebas funcionales; eso no corrige una estructura mal interpretada. Mantener separada la validación técnica de matrices y sus inconsistencias conocidas.
-2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
-3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel final y reporte; medir también una extracción nueva y revisar el pegado. La muestra integrada ya mide recuperación, selección y exportación sobre una interpretación reutilizada; no es el presupuesto completo.
-4. Validar la recuperación integrada y ampliar las referencias expertas; conservar Nemotron, las guardas y los controles de incompatibilidades reales. No sustituirlo por la velocidad de otro evaluador.
+1. Mantener comprobaciones de extracción y jerarquía sobre los originales. Los resultados actuales y su alcance están en [ORIGINALES.md](ORIGINALES.md); nuevos formatos todavía requieren referencia.
+2. Exponer el coordinador mediante un MCP mínimo para que distintos agentes lo utilicen sin depender de Cline. Sigue pendiente; no duplicar la lógica de los módulos existentes.
+3. Mantener los controles de integridad y resolver las inconsistencias técnicas conocidas del selector antes de confiar en equivalencias automáticas generales. Conservar originales prueba el flujo, no certifica matrices.
+4. Ampliar las referencias expertas y comprobar nuevas entregas y su pegado, conservando el modelo y las guardas actuales.
 5. Cuando el flujo sea confiable, preparar la interfaz familiar; después abordar acceso web para otros usuarios y suscripciones.
 
 ## Fuera del trabajo inmediato

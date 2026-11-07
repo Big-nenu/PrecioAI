@@ -16,6 +16,8 @@ Usar la ruta real del índice ya construido para reutilizarlo. Una ruta nueva cr
 
 `--por-tabla` corresponde a la [ruta tabular](EXTRACCION-TABULAR.md) para una tabla estable. Sin ese indicador se utiliza el intérprete por bloques existente. Este admite `--hoja`, `--fila-inicial` y `--fila-final` para pruebas parciales; no combinarlos con `--por-tabla`. Si el intérprete informa un error, el flujo se detiene. El coordinador no añade una validación semántica de la estructura: una clasificación errónea que pase las guardas existentes todavía requiere revisión. No se supone que todos los formatos estén resueltos.
 
+Para pruebas acotadas se puede añadir `--limite-conceptos 20`. Se interpreta el Excel original completo y se guarda ese checkpoint; solo la búsqueda, evaluación y entrega se limitan a los primeros veinte conceptos y sus agrupadores. El alcance se marca parcial y registra cuántos conceptos se interpretaron y procesaron. No recorta ni prepara el archivo original. Sin esa opción se procesan todos.
+
 La carpeta debe ser nueva o vacía. El programa conserva el hash del Excel, los parámetros, la versión del código y los hashes de los archivos generados. Nunca coloca resultados sobre el presupuesto original.
 
 ## Preguntas y decisiones
@@ -70,9 +72,9 @@ Los checkpoints son por etapa completa, no por bloque ni llamada IA. Si una etap
 
 ## Qué sigue
 
-La prioridad siguiente es corregir y comprobar la extracción de encabezados y jerarquía en los presupuestos originales, especialmente «Propuesta pepe». Las pruebas con portada detectaron fallos del intérprete; no deben ocultarse con instrucciones al agente ni dar por válido un conteo incorrecto. La prueba positiva del coordinador usa un fixture controlado de veinte conceptos, sin portada/metadato global: no demuestra que funcione cualquier archivo sin preparar.
+La clasificación de metadatos, partidas y subpartidas se corrigió y se cotejó sobre dos archivos originales. La [prueba actual](ORIGINALES.md) separa extracción completa del catálogo y recorrido funcional de veinte conceptos por archivo, conservando originales. La prueba controlada histórica de abajo se mantiene como antecedente; los nuevos resultados no convierten cualquier formato en compatible.
 
-Una vez comprobada esa estructura, sigue una interfaz local mínima sobre este flujo: subir Excel, consultar estado/preguntas, registrar elecciones o conservar originales y descargar Excel/reporte. Después se comprueba el acceso desde la laptop del papá del usuario. No están implementadas esas pantallas, autenticación, suscripciones ni despliegue web.
+El siguiente incremento previsto es un MCP mínimo que exponga este mismo flujo a distintos agentes, sin duplicar etapas ni depender de Cline. Después, una interfaz local mínima sobre el flujo: subir Excel, consultar estado/preguntas, registrar elecciones o conservar originales y descargar Excel/reporte. Después se comprueba el acceso desde la laptop del papá del usuario. No están implementadas esas pantallas, autenticación, suscripciones ni despliegue web.
 
 Las inconsistencias técnicas conocidas de Nemotron siguen requiriendo revisión; un coordinador no convierte una propuesta incorrecta en equivalente. Ver [controles de acción principal](ACCION-PRINCIPAL.md).
 
