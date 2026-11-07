@@ -100,6 +100,8 @@ La [corrección de acción principal](ACCION-PRINCIPAL.md) hizo que Nemotron rec
 
 ## Desarrollo y uso actual
 
+El [comando único mini_pai.py](FLUJO.md) coordina las etapas y permite continuar una sesión con decisiones parciales o conservar todos los originales, sin repetir etapas terminadas. Guarda estado y hashes en la carpeta de sesión. Es una herramienta local por terminal; los límites del intérprete y del selector siguen vigentes.
+
 Para el catálogo tabular completo usar primero [la ruta --por-tabla](EXTRACCION-TABULAR.md). Los comandos por bloques de esta sección conservan el comportamiento anterior y no sustituyen la nueva comprobación.
 
 Los módulos siguen en la raíz: [mapa del código](../docs/ESTRUCTURA.md). La [skill versionada](../skills/analizar-presupuesto/SKILL.md) forma parte de las instrucciones y contratos; no es un servidor MCP ni garantiza obediencia del asistente.
@@ -123,13 +125,13 @@ python mini_pai_exportar.py salidas/ejecucion-001/resuelto.json --final --salida
 python -m unittest discover -v
 ```
 
-El exportador entrega también `presupuesto.md`. **No existe todavía una orquestación única validada** que complete el proceso sin supervisión técnica. La guía de Cline sirve para desarrollo y pruebas, no es la interfaz final.
+El exportador entrega también `presupuesto.md`. Existe un coordinador reanudable, pero **el uso autónomo sobre presupuestos diversos todavía requiere validar la extracción y las decisiones**. La guía de Cline sirve para desarrollo y pruebas, no es la interfaz final. Ver [FLUJO.md](FLUJO.md).
 
 Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [continuidad y procedencia](CONTINUIDAD.md).
 
 ## Próximo trabajo, por orden
 
-1. Revisar con el usuario las 19 dudas del Excel vigente y comprobar consistencia de alcance/inclusiones y de incompatible frente a insuficiente. El caso construir/demoler ya se corrigió mediante instrucciones y controles; no constituye una guarda determinista general.
+1. Corregir y comprobar la clasificación de encabezados y jerarquía en los archivos originales antes de la interfaz. El coordinador ya permite conservar todos los originales para pruebas funcionales; eso no corrige una estructura mal interpretada. Mantener separada la validación técnica de matrices y sus inconsistencias conocidas.
 2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
 3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel final y reporte; medir también una extracción nueva y revisar el pegado. La muestra integrada ya mide recuperación, selección y exportación sobre una interpretación reutilizada; no es el presupuesto completo.
 4. Validar la recuperación integrada y ampliar las referencias expertas; conservar Nemotron, las guardas y los controles de incompatibilidades reales. No sustituirlo por la velocidad de otro evaluador.

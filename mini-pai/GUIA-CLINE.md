@@ -2,6 +2,8 @@
 
 Mini-PAI es una skill del repositorio más scripts Python. No requiere instalar un servidor MCP. Cline necesita poder leer los archivos y usar la terminal del proyecto.
 
+El [comando único reanudable](FLUJO.md) coordina las mismas etapas sin depender de Cline. Usarlo para iniciar una sesión y continuar con las decisiones, evitando volver a interpretar o buscar lo ya terminado. Los comandos por etapa de esta guía siguen disponibles para diagnosticar errores; no modificar checkpoints para saltar sus validaciones.
+
 ## Preparación
 
 1. Abrir en VS Code un checkout que contenga el código del [PR #3](https://github.com/Big-nenu/PrecioAI/pull/3), rama `mini-pai-busqueda-revisable`. Main puede no incluirlo. Revisar `git status` antes de cambiar de rama y conservar modificaciones locales.
@@ -142,4 +144,4 @@ ajenos para desbloquear Mini-PAI; revisar la ejecución si vuelve a solicitarlos
 
 ## Alcance de esta guía
 
-Cline es una herramienta de desarrollo y prueba, no la interfaz que usará el ingeniero. Si un resumen mezcla valores de filas distintas, cotejar los JSON y sus celdas de evidencia para localizar el fallo; otra instrucción por chat no constituye una corrección del producto. La extracción completa y la orquestación autónoma siguen pendientes. El criterio de aceptación vigente está en [README.md](README.md).
+Cline es una herramienta de desarrollo y prueba, no la interfaz que usará el ingeniero. Si un resumen mezcla valores de filas distintas, cotejar los JSON y sus celdas de evidencia para localizar el fallo; otra instrucción por chat no constituye una corrección del producto. El coordinador local ya existe; la extracción fiable en formatos diversos y el uso autónomo general siguen pendientes. El criterio de aceptación vigente está en [README.md](README.md).

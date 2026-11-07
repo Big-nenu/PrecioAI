@@ -26,9 +26,9 @@ Existen módulos de inspección Excel, interpretación IA por bloques con eviden
 
 **Todavía no está validado el flujo completo para uso autónomo.** Después de la [auditoría inicial](mini-pai/AUDITORIA-EXTRACCION.md), la nueva [ruta tabular](mini-pai/EXTRACCION-TABULAR.md) recuperó 78 conceptos y 15 agrupadores: 312 campos cotejados sin diferencias. La extracción tardó 39.467 s con Nemotron; no incluye SQL, selección ni exportación. Es una ruta explícita para una tabla estable, no una garantía para todos los formatos.
 
-El exportador final rechaza códigos con descripciones distintas entre originales conservados y matrices seleccionadas. Pasaron 145 pruebas; el formato Excel se conserva.
+El exportador final rechaza códigos con descripciones distintas entre originales conservados y matrices seleccionadas. El formato Excel se conserva. El [comando único reanudable](mini-pai/FLUJO.md) coordina las etapas y guarda el avance; no corrige por sí mismo los fallos del intérprete ni certifica las equivalencias.
 
-Nemotron sigue como modelo principal. Hay ensayos anteriores y herramientas de laboratorio, pero falta comparar la combinación propuesta de embeddings y evaluadores en el flujo actual, con los mismos datos y mediciones de calidad, tiempo y memoria. Tener modelos descargados no significa que estén integrados o evaluados.
+Nemotron sigue como modelo principal. La búsqueda con EmbeddingGemma 270m e índice persistente está conectada al selector existente; [los ensayos de recuperación y evaluadores](mini-pai/PRUEBA-RECUPERACION-DECISIONES.md) no justificaron cambiar el evaluador principal. Persisten límites de extracción, alcance y consistencia técnica documentados en Mini-PAI.
 
 Especificación, formato y pendientes: [Mini-PAI](mini-pai/README.md).
 
@@ -65,7 +65,7 @@ La segunda instalación añade las dependencias de las pruebas de laboratorio. N
 
 Configurar el archivo local `.env` según [.env.example](.env.example), sin publicarlo. Para Ollama, definir `PRECIOAI_AI_PROVIDER=ollama` y `PRECIOAI_AI_MODEL` con un modelo instalado. SQL utiliza `PRECIOAI_SQL_*`.
 
-Para probar las etapas, consultar [GUIA-CLINE.md](mini-pai/GUIA-CLINE.md). `leer_presupuesto.py` es un prototipo de columnas fijas, no la entrada apropiada para presupuestos variables. No hay todavía un comando único validado que orqueste todo el flujo autónomamente.
+Para iniciar y continuar una sesión, consultar [FLUJO.md](mini-pai/FLUJO.md); los comandos individuales siguen en [GUIA-CLINE.md](mini-pai/GUIA-CLINE.md). `leer_presupuesto.py` es un prototipo de columnas fijas, no la entrada apropiada para presupuestos variables. El coordinador no convierte el prototipo en un producto autónomo validado para cualquier formato.
 
 ## Revisión e historial
 
