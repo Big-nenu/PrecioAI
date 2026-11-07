@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from openpyxl import load_workbook
 import mini_pai_confirmar as confirmar
 import mini_pai_exportar as exportar
-import test_mini_pai_exportar as ejemplos
+from tests import test_mini_pai_exportar as ejemplos
 
 
 class PruebasConfirmaciones(unittest.TestCase):

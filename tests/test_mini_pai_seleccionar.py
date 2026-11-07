@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import mini_pai_seleccionar as ia
 from mini_pai_confirmar import ASPECTOS, validar_evaluacion_ia, seleccion_validada
 from mini_pai_exportar import crear_excel
-import test_mini_pai_confirmar as ejemplos
+from tests import test_mini_pai_confirmar as ejemplos
 import mini_pai_buscar as busqueda
 
 

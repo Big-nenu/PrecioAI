@@ -98,7 +98,7 @@ Se pueden registrar respuestas por grupos, usando el último JSON resuelto como 
 
 ## Qué comprobar al recibirlo
 
-- 20 conceptos y sus encabezados, con la jerarquía original.
+- En esta muestra, 20 conceptos y sus encabezados con la jerarquía original. Para otro archivo o alcance, comprobar su conteo real; 20 no es un límite del producto.
 - Con matriz: Código, Descripción completa y Unidad de ConstruBase; auxiliares y cantidad del cliente.
 - Sin matriz: código y descripción del cliente repetidos en principales y auxiliares.
 - Reporte con sin candidatos, conservación manual, matrices elegidas y origen IA/usuario.
@@ -114,3 +114,7 @@ sin SQL ni exportación y exigir la salida real de la terminal. La skill ahora t
 metadatos de activación y un arranque que comprueba módulos, alcance y evidencias.
 Esto orienta al modelo, pero no garantiza que siempre obedezca. No conectar servicios
 ajenos para desbloquear Mini-PAI; revisar la ejecución si vuelve a solicitarlos.
+
+## Alcance de esta guía
+
+Cline es una herramienta de desarrollo y prueba, no la interfaz que usará el ingeniero. Si un resumen mezcla valores de filas distintas, cotejar los JSON y sus celdas de evidencia para localizar el fallo; otra instrucción por chat no constituye una corrección del producto. La extracción completa y la orquestación autónoma siguen pendientes. El criterio de aceptación vigente está en [README.md](README.md).

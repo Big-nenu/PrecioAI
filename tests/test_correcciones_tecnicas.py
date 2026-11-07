@@ -8,8 +8,8 @@ import mini_pai_claves as claves
 import mini_pai_revision as revision
 import mini_pai_seleccionar as selector
 from mini_pai_confirmar import validar_evaluacion_ia
-import test_mini_pai_claves as ejemplos_claves
-import test_mini_pai_seleccionar as ejemplos_selector
+from tests import test_mini_pai_claves as ejemplos_claves
+from tests import test_mini_pai_seleccionar as ejemplos_selector
 
 
 class PruebasCorreccionesTecnicas(unittest.TestCase):

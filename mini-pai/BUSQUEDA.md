@@ -86,7 +86,7 @@ a conceptos existentes; no se agrupan conceptos por la clave del cliente.
 
 Todavía no hay «buscar más», recuperación de matrices ni costos. Hay selección
 IA, confirmación humana de excepciones y exportación con o sin selecciones verificadas, como está
-documentada en [README.md](README.md#primer-excel-de-revisión-2026-11-06). No se aplican embeddings ni un modelo de decisiones en este
+documentada en [README.md](README.md#formato-de-salida). No se aplican embeddings ni un modelo de decisiones en este
 paso. El laboratorio sigue disponible como experimento independiente.
 
 ## Recuperación ampliada para comparación IA
@@ -162,7 +162,7 @@ el usuario. La elección se registra con `mini_pai_confirmar.py` (IdCodigo real 
 null), y `mini_pai_exportar.py --final` entrega Excel más Markdown. Una búsqueda
 válida vacía conserva código/descripción del cliente en principales y auxiliares;
 un fallo no equivale a búsqueda vacía. Códigos ausentes se solicitan antes del final.
-Ver formatos de respuestas y comandos en [README.md](README.md#flujo-vigente-con-revisión-del-usuario-2026-11-06).
+Ver formatos de respuestas y comandos en [GUIA-CLINE.md](GUIA-CLINE.md).
 
 
 ### Validación y orden técnico de la revisión

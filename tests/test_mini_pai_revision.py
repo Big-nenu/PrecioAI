@@ -10,7 +10,7 @@ import mini_pai_confirmar as confirmar
 import mini_pai_exportar as exportar
 import mini_pai_revision as revision
 import mini_pai_seleccionar as selector
-import test_mini_pai_confirmar as ejemplos
+from tests import test_mini_pai_confirmar as ejemplos
 
 
 class PruebasRevisionUsuario(unittest.TestCase):

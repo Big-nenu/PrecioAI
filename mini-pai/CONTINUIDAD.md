@@ -28,14 +28,18 @@ Sin matriz, se repiten código y descripción del cliente en principales y auxil
 
 Las cuatro propuestas se revalidaron sobre respuestas guardadas, sin nueva inferencia. Los milisegundos de esa revalidación no son tiempos de generación. Los datos privados permanecen fuera de Git.
 
-## Pendientes, en orden
+## Prioridad vigente tras la aclaración de producto
 
-1. Medir una ejecución limpia con el código actual, sin mezclar intentos de desarrollo ni revalidación de respuestas guardadas con inferencia nueva.
-2. Comparar EmbeddingGemma 2:270m y Qwen3-Embedding:0.6b en la misma muestra: tiempo, memoria y presencia de matrices útiles entre los primeros candidatos. No declarar ganador por tamaño o benchmarks generales.
-3. Preparar un índice local separado de ConstruBase si el experimento lo justifica. Medir por separado construcción inicial, actualización y consultas habituales. SQL permanece en lectura.
-4. Comparar D1 y D3 con exactamente los mismos conceptos y candidatos. Medir latencia y decisiones, incluidas diferencias reales, omisiones e información insuficiente. Confianza alta no es aprobación ni probabilidad calibrada de acierto.
-5. Integrar únicamente la combinación que demuestre mejora; reutilizar `laboratorio_coincidencias.py`, `comparar_evaluadores.py`, proveedor, skill y módulos actuales antes de crear infraestructura.
-6. Probar conversación completa en Cline y copiar el nuevo Excel a Neodata, incluyendo conceptos sin matriz y cantidades con comas conservadas como texto.
+PrecioAI conserva el alcance futuro de plataforma web completa. Mini-PAI es el producto de menor alcance que debe funcionar primero localmente, después mediante interfaz familiar y finalmente como servicio por suscripción. Interfaz, autenticación y cobros no están implementados. Ver los README vigentes; los anteriores se conservan en las carpetas de historial.
+
+1. Auditar el presupuesto actual de 78 conceptos: el resumen de Cline mezcló valores de dos filas. Cotejar archivos estructurados antes de atribuir el error al extractor o continuar a SQL. No resolverlo únicamente mediante nuevas instrucciones de chat.
+2. Comprobar cobertura, jerarquía y correspondencia de campos; verificar conflictos de códigos entre matrices y conceptos originales conservados. La guarda actual del exportador cubre matrices seleccionadas, no demuestra la regla general.
+3. Ejecutar y medir el flujo completo con decisiones humanas reales y Excel revisable. La suite no sustituye esta prueba.
+4. Comparar EmbeddingGemma y Qwen3-Embedding en la misma muestra: recuperación, tiempo y memoria. Si se justifica un índice, mantenerlo separado de ConstruBase y medir construcción y consultas por separado.
+5. Comparar D1/D3 sobre los mismos conceptos y candidatos; conservar los ensayos D1/TEV1 como antecedentes, no como autorización para cambiar Nemotron. Alta confianza no es aprobación.
+6. Integrar solo mejoras demostradas reutilizando el laboratorio y proveedor actuales. Cuando el flujo sea confiable, preparar la interfaz familiar; después el servicio para otros usuarios.
+
+Tras la reorganización documental y traslado de los 19 módulos a `tests/`, pasaron nuevamente las 127 pruebas automatizadas. No se repitieron inferencias ni pruebas reales de SQL y no se cambió la lógica del producto, el formato Excel o la skill instalada. Los originales y `.env` conservan sus rutas y contenido.
 
 El orden no puede recuperar una matriz que quedó fuera de los cinco candidatos. Ocurrió con acero 5/16. M/ML y otras diferencias de unidad siguen bloqueando confirmaciones hasta resolverlas. La clasificación semántica aún necesita revisión: algunos incompatibles se etiquetan insuficientes, aunque no se aprueben.
 
