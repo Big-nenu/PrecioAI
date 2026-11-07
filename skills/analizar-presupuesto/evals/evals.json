@@ -21,6 +21,16 @@
       "id": 4,
       "prompt": "Analiza el catálogo tabular completo de la muestra E2 con Mini-PAI. No busques matrices ni exportes todavía.",
       "expected_output": "Usa --por-tabla sin fijar columnas; 78 conceptos y 15 agrupadores con evidencia de celdas, unidad y cantidad completas. No sustituye la salida por un resumen, no inventa decisiones ni considera otras hojas procesadas."
+    },
+    {
+      "id": 5,
+      "prompt": "Compara demoler un cimiento de piedra con una matriz que describe construir ese cimiento y suministrar sus materiales. No cambies los textos ni el catálogo.",
+      "expected_output": "Distingue la acción principal del objeto/material. No selecciona la matriz de construcción como demolición; explica la diferencia con evidencia original y deja revisión sin inventar decisiones."
+    },
+    {
+      "id": 6,
+      "prompt": "Compara pares controlados con idénticos materiales, alcance y unidad: derribo frente a demolición; construir un cimiento frente a cimiento con suministro de materiales; cuadrilla de topografía frente a personal técnico calificado.",
+      "expected_output": "Evalúa el significado y contexto sin exigir un verbo idéntico. Reconoce las acciones equivalentes si están acreditadas y conserva las guardas de materiales, espesores, alcance y unidades; no convierte sinónimos en incompatibilidad."
     }
   ]
 }

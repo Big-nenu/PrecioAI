@@ -1,5 +1,7 @@
 # Mini-PAI: recuperación con índice conectada al flujo existente
 
+Actualización posterior: [acción principal, controles y Excel vigente](ACCION-PRINCIPAL.md). Este documento conserva las mediciones y resultados de la integración inicial.
+
 Prueba real del 7 de noviembre de 2026. Se conectó EmbeddingGemma 270m mediante `mini_pai_buscar.py --indice` al contrato del selector existente. Se conservó Nemotron, la verificación SQL, los originales y el formato Excel. No hay cambio de arquitectura ni dependencias nuevas.
 
 ## Alcance y mediciones

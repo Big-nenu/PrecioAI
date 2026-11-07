@@ -11,6 +11,18 @@ import mini_pai_buscar as busqueda
 
 
 class PruebasSeleccionIA(unittest.TestCase):
+    def test_esquema_respeta_requisitos_esenciales_y_no_aplica(self):
+        datos = self.datos()
+        r, b = datos['registros'][2], datos['busquedas_construbase'][0]
+        esquema = ia.esquema(b, ia.fragmentos(r, b))
+        pruebas = esquema['properties']['comprobaciones']['items']['anyOf']
+        por_aspecto = {p['properties']['aspecto']['enum'][0]: p['properties']['estado']['enum'] for p in pruebas}
+        self.assertEqual(por_aspecto['unidad'], ['compatible'])
+        for aspecto in ('procedimiento', 'alcance'):
+            self.assertEqual(set(por_aspecto[aspecto]), {'compatible','diferente','insuficiente'})
+        for aspecto in ('materiales','dimensiones','espesor','resistencia'):
+            self.assertIn('no_aplica', por_aspecto[aspecto])
+
     def datos(self):
         datos = ejemplos.PruebasConfirmaciones().entrada()
         r = datos["registros"][2]

@@ -92,6 +92,15 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   ni garantizan inclusiones. No cambiar los códigos o descripciones originales.
 
 ## Criterio de comparación técnica (etapa 2)
+- Comprobar primero la acción principal y su objeto en ambos textos, antes de
+  materiales, dimensiones o unidad. Construir un elemento no equivale a demolerlo;
+  suministrar o colocar no equivale a retirar. Una matriz que describe un cimiento
+  con suministro de materiales acredita su construcción, no su demolición.
+  No atribuir al catálogo la acción del cliente porque coincidan objeto y material.
+  Admitir acciones expresadas con sinónimos o de forma nominal cuando el contexto
+  las acredite; no exigir un verbo literal ni una palabra exacta. Si la acción es
+  ambigua, dejar insuficiente. Si acredita otro trabajo, marcar incompatible.
+  Las inclusiones no convierten una actividad secundaria en la principal.
 - Ordenar los cinco candidatos de mejor base técnica a peor para mostrar las tres
   opciones al usuario, incluso cuando ninguno permita sustitución automática.
   Priorizar trabajo principal y cobertura, material y valores técnicos coincidentes;

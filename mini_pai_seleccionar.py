@@ -37,8 +37,11 @@ def esquema(busqueda, fuentes):
     comprobaciones = []
     for aspecto in ASPECTOS:
         unidad = aspecto == "unidad"
+        estados = ["compatible", "diferente", "insuficiente"]
+        if aspecto not in ("procedimiento", "alcance", "unidad"):
+            estados.insert(1, "no_aplica")
         comprobaciones.append(objeto(dict(aspecto=dict(type="string", enum=[aspecto]),
-            estado=dict(type="string", enum=["compatible"] if unidad else ["compatible", "no_aplica", "diferente", "insuficiente"]),
+            estado=dict(type="string", enum=["compatible"] if unidad else estados),
             cliente=dict(type="string", enum=["CU"] if unidad else [""]+[k for k in fuentes if k.startswith("C") and k!="CU"]),
             catalogo=dict(type="string", enum=[k for k in fuentes if k.startswith("KU")] if unidad else [""]+[k for k in fuentes if k.startswith("K") and not k.startswith("KU")]),
             motivo=texto)))
@@ -97,6 +100,13 @@ Devuelve solo el JSON del esquema. No transcribas textos: usa IDs de fragmentos:
 C0, C1... cliente; CU unidad cliente; K{IdCodigo}_0... catálogo; KU{IdCodigo} unidad.
 Python materializa las citas originales. Referencia vacía solo si falta evidencia.
 
+Antes de comparar materiales, comprueba la acción principal y el objeto en ambos
+textos. Fundamenta esa comparación en el motivo de cada candidato. No atribuyas
+al catálogo la acción pedida por el cliente: construir un cimiento no acredita
+demolerlo aunque coincidan piedra, mortero y unidad. No uses una inclusión
+secundaria como prueba del trabajo principal. Admite sinónimos y acciones nominales
+acreditadas por contexto; acción ambigua es insuficiente, otra acción es incompatible.
+
 orden_revision es un objeto con puesto_1, puesto_2... hasta completar los candidatos.
 Incluye TODOS los IdCodigo una sola vez: puesto_1 es la mejor base técnica,
 puesto_2 la siguiente, etc. El primer puesto coincide con el candidato que justificas
@@ -112,6 +122,8 @@ Cada candidato tiene equivalente, incompatible o insuficiente y un motivo breve:
 REDACCION_EQUIVALENTE, NO_MENCIONADO y DIFERENCIA_REAL, sustentados en ambos textos.
 No confundas omisión con contradicción. Aplica los criterios de la skill anterior.
 Misma unidad no basta. No iguales piedra a concreto, 5 a 6 cm ni resistencias distintas.
+Una contradicción explícita de actividad, material o espesor es incompatible,
+aunque además falte acreditar otra inclusión. No la etiquetes insuficiente por esa omisión.
 No infieras distancia, superficie de trabajo o geometría a partir de la cantidad.
 No conviertas unidades ni inventes prestaciones a partir de recursos genéricos.
 
@@ -121,7 +133,9 @@ ningún dictamen es equivalente. Si eliges un ID, su dictamen debe ser equivalen
 y exactamente siete comprobaciones: materiales, procedimiento, dimensiones,
 espesor, resistencia, alcance, unidad. Compatible exige citas de ambos textos.
 Procedimiento, alcance y unidad nunca son no_aplica. En otros aspectos, no_aplica
-solo si el cliente no exige ese aspecto; preferir referencias vacías. Si aportas
+significa que el cliente NO exige ese aspecto, no que coincidan o no haya objeciones.
+Si exige material, diámetro, espesor o resistencia y ambos lo acreditan, usa compatible
+con las citas correspondientes. En no_aplica, preferir referencias vacías. Si aportas
 referencias en un aspecto no aplicable, deben ser originales y verificables y nunca
 pueden ocultar una especificación exigida. No las inventes ni las uses para aprobar.
 Para unidad usa CU y KU del elegido. No selecciones con dudas o pruebas incompletas.

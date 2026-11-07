@@ -96,6 +96,8 @@ Los ensayos exploratorios de Nemotron, D1 y TEV1 están en [EVALUADORES.md](EVAL
 
 Se ejecutaron [pruebas separadas de embeddings, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). EmbeddingGemma 270m recuperó más referencias útiles que Qwen en la muestra de 20 conceptos contra 19,418 registros. La ruta [mini_pai_buscar.py --indice](BUSQUEDA.md) ya conecta ese índice al selector existente, conservando Nemotron y la revalidación SQL. Ver [prueba integrada y límites](INTEGRACION-INDICE.md). Las decisiones rápidas no sustituyen las guardas técnicas ni la revisión de dudas.
 
+La [corrección de acción principal](ACCION-PRINCIPAL.md) hizo que Nemotron rechazara por sí mismo construir un cimiento frente a demolerlo. Cuatro controles de sinónimos/formulaciones compatibles conservaron selección; los diez negativos no se seleccionaron. Se alineó el esquema con las guardas existentes de procedimiento y alcance. El Excel revisado de la muestra conserva una propuesta SQL y 19 pendientes tras retirar también una propuesta de alcance limitado. Persisten inconsistencias de etiquetas e inclusiones; no se certifica la evaluación general.
+
 ## Desarrollo y uso actual
 
 Para el catálogo tabular completo usar primero [la ruta --por-tabla](EXTRACCION-TABULAR.md). Los comandos por bloques de esta sección conservan el comportamiento anterior y no sustituyen la nueva comprobación.
@@ -127,7 +129,7 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 
 ## Próximo trabajo, por orden
 
-1. Corregir y comprobar la evaluación de la acción principal: la prueba integrada detectó una confusión entre construir y demoler, retirada mediante auditoría de la muestra. Resolver con el usuario las dudas del Excel de revisión; esa auditoría no es una guarda general del selector.
+1. Revisar con el usuario las 19 dudas del Excel vigente y comprobar consistencia de alcance/inclusiones y de incompatible frente a insuficiente. El caso construir/demoler ya se corrigió mediante instrucciones y controles; no constituye una guarda determinista general.
 2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
 3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel final y reporte; medir también una extracción nueva y revisar el pegado. La muestra integrada ya mide recuperación, selección y exportación sobre una interpretación reutilizada; no es el presupuesto completo.
 4. Validar la recuperación integrada y ampliar las referencias expertas; conservar Nemotron, las guardas y los controles de incompatibilidades reales. No sustituirlo por la velocidad de otro evaluador.
