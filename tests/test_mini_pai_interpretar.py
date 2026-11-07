@@ -12,6 +12,22 @@ from mini_pai_interpretar import (inspeccionar_excel, validar, interpretar,
 
 
 class PruebasInterpretacion(unittest.TestCase):
+    def test_cantidad_se_conserva_por_fila_y_rechaza_la_de_otro_concepto(self):
+        origen = dict(hojas=[dict(nombre='Obra', filas=[
+            dict(fila=19, celdas={'B19': 'X-001', 'C19': 'Trazo', 'E19': '1900.21'}),
+            dict(fila=107, celdas={'B107': 'X-075', 'C107': 'Otro trabajo', 'E107': '133.17'})])])
+        propuesta = dict(registros=[dict(tipo='concepto', hoja='Obra', fila=n, padre=None,
+                                        motivo=None, evidencia=dict(clave=[f'B{n}'],
+                                        descripcion=[f'C{n}'], unidad=[], cantidad=[f'E{n}']))
+                                    for n in (19, 107)], dudas=[])
+        datos = materializar(propuesta, origen)
+        validar(datos, origen)
+        self.assertEqual([r['cantidad'] for r in datos['registros']], ['1900.21', '133.17'])
+        datos['registros'][0].update(cantidad='133.17')
+        datos['registros'][0]['evidencia']['cantidad'] = ['E107']
+        with self.assertRaisesRegex(ValueError, 'fila del registro'):
+            validar(datos, origen)
+
     def test_alcance_parcial_y_rangos_invalidos_sin_consultar_ia(self):
         origen, datos = self.ejemplo()
         with patch("mini_pai_interpretar.inspeccionar_excel", return_value=deepcopy(origen)), patch(

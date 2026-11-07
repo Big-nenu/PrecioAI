@@ -42,7 +42,20 @@ def consultar_ia(mensajes, *, esquema=None):
     if not base.startswith(("http://", "https://")):
         raise ValueError("URL de proveedor inválida")
     solicitud = {"model": modelo, "messages": mensajes, "stream": False}
-    if esquema is not None:
+    nativo = (os.getenv("PRECIOAI_AI_PROVIDER", "ollama").lower() == "ollama"
+              and bool(os.getenv("PRECIOAI_OLLAMA_NUM_CTX")))
+    if nativo:
+        contexto = int(os.environ["PRECIOAI_OLLAMA_NUM_CTX"])
+        prediccion = int(os.getenv("PRECIOAI_OLLAMA_NUM_PREDICT", "2048"))
+        pensamiento = os.getenv("PRECIOAI_OLLAMA_THINK", "").lower()
+        if not 4096 <= contexto <= 32768 or not 256 <= prediccion <= 8192 or pensamiento not in ("", "true", "false"):
+            raise ValueError("Configuración Ollama de contexto/generación inválida")
+        solicitud.update(options=dict(num_ctx=contexto, num_predict=prediccion, temperature=0))
+        if pensamiento:
+            solicitud["think"] = pensamiento == "true"
+        if esquema is not None:
+            solicitud["format"] = esquema
+    if esquema is not None and not nativo:
         solicitud["temperature"] = 0
         solicitud["response_format"] = {"type": "json_schema", "json_schema": {
             "name": "interpretacion_presupuesto", "strict": True, "schema": esquema}}
@@ -50,7 +63,8 @@ def consultar_ia(mensajes, *, esquema=None):
     headers = {"Content-Type": "application/json"}
     if clave:
         headers["Authorization"] = "Bearer " + clave
-    peticion = Request(base + "/chat/completions", data=cuerpo, headers=headers, method="POST")
+    url = base.removesuffix("/v1") + "/api/chat" if nativo else base + "/chat/completions"
+    peticion = Request(url, data=cuerpo, headers=headers, method="POST")
     try:
         with urlopen(peticion, timeout=120) as respuesta:
             datos = json.load(respuesta)
@@ -59,6 +73,15 @@ def consultar_ia(mensajes, *, esquema=None):
     except URLError as exc:
         raise RuntimeError("No se pudo conectar al proveedor de IA") from exc
     try:
+        if not isinstance(datos, dict):
+            raise TypeError("El proveedor no devolvió un objeto")
+        if nativo:
+            if datos.get("done_reason") == "length":
+                raise RuntimeError("La respuesta de IA quedó truncada; reducir el bloque de entrada")
+            contenido = datos["message"]["content"]
+            if not isinstance(contenido, str) or datos.get("done") is not True:
+                raise TypeError("Respuesta nativa incompleta")
+            return contenido
         opcion = datos["choices"][0]
         if not isinstance(opcion, dict):
             raise TypeError("La opción no es un objeto")
