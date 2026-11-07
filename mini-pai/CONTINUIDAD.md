@@ -142,3 +142,12 @@ Se continuó la prioridad de clasificación en el repositorio real de Projects. 
 Resultado: E2 con 78 conceptos/15 agrupadores y 312 campos; Propuesta con 438/115 y 1,752 campos. Cotejos de valores y jerarquía sin diferencias en las pasadas aceptadas. El coordinador permite limitar etapas posteriores con --limite-conceptos, guardando íntegra la interpretación del original. Se probó búsqueda, evaluación, preguntas, conservar originales, Excel y Markdown con veinte conceptos por archivo. Entregas: salidas/flujo-originales-2026-11-07/01-sesion/ y 06-sesion/. Las resoluciones no repitieron etapas ni abrieron SQL; los checkpoints quedaron intactos. Pasaron 172 pruebas. Los fallos intermedios se conservan y no se cuentan como resultados válidos. Ver [ORIGINALES.md](ORIGINALES.md) para tiempos, procedencia y límites.
 
 No se certifican las propuestas del selector. No se procesaron matrices de todos los conceptos, no se repitió el pegado ni se implementó interfaz. El MCP sigue pendiente y se plantea como capa mínima del coordinador existente, independiente de Cline. PR #3 para revisión, sin fusionar.
+
+
+## Generalización de columnas y árbol — 7 de noviembre de 2026
+
+Se eliminaron el límite interno de dos niveles y la exigencia de rótulos en una sola fila. El mismo árbol por padre se valida en materialización/búsqueda y se conserva al exportar, sin cambiar columnas. La clasificación tabular usa partida/subpartida/padre como la ruta por bloques; una duda estructural explícita detiene la etapa sin reintentos para forzar aprobación. La evidencia de columnas permite rótulos o filas medidas, con controles para no ocultar trabajos ni eliminar datos repetidos.
+
+Pasaron 180 pruebas. Hay cotejos correctos de E2, Estándar, PRESUPUESTO DE OBRA y Propuesta; los dos últimos planes se revalidaron sin nueva inferencia después del ajuste de columnas. original siop sigue sin árbol correcto y Obra civil se detiene ante descripción compartida ambigua. No se certifican estos dos casos ni se afirma comprensión universal. No se ejecutaron SQL ni comparaciones técnicas nuevas. Ver [GENERALIZACION.md](GENERALIZACION.md) para evidencia, tiempos, contratos y límites.
+
+Prioridad: revisión estructural y contexto de descripciones compartidas, después selección fiable de ruta y más formatos. MCP e interfaz siguen pendientes. La skill versionada se ajustó al contrato general; no hay reglas por archivo ni nuevas dependencias. PR #3 para revisión, sin fusionar.

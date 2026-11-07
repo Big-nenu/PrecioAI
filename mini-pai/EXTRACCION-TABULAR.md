@@ -1,5 +1,7 @@
 # Extracción tabular de Mini-PAI
 
+El contrato actual admite anclas en rótulos de varias filas o ejemplos medidos, y jerarquía por padres de profundidad variable. Consultar [GENERALIZACION.md](GENERALIZACION.md); los ensayos de abajo describen versiones anteriores.
+
 La corrección y comprobación más reciente sobre los dos archivos originales está en [ORIGINALES.md](ORIGINALES.md). Las mediciones siguientes conservan el primer ensayo histórico de esta ruta.
 
 ## Qué cambia
@@ -51,7 +53,7 @@ La ruta anterior por bloques conserva sus comandos y pruebas. El nuevo modo es e
 
 ## Límites
 
-- Una tabla de columnas estables, con cabecera entre las primeras **20 filas no vacías** de la hoja.
+- Una tabla de columnas estables, con evidencia para identificarlas entre las primeras **20 filas no vacías** de la hoja.
 - Deben poder reconocerse las columnas de descripción, unidad y cantidad. Algunos conceptos pueden carecer de esos valores; se conservan ausentes y se clasifican mediante IA. No se inventa un código faltante.
 - No está validada para cambios de columnas, varias tablas en una hoja o descripciones repartidas entre varias filas; no debe darse por correcta en esos casos. Los saltos de línea dentro de una celda sí se conservan.
 - Otras hojas con datos se declaran no procesadas y el alcance se marca parcial.

@@ -65,7 +65,6 @@ class PruebasTabla(unittest.TestCase):
         wire = dict(filas=deepcopy(plan['filas']),dudas=[])
         wire['filas'].update({str(n):dict(tipo='omitir',padre=None,motivo='Resumen final') for n in (7,8)})
         wire['filas']['7']['tipo']='resumen'
-        for d in wire['filas'].values():d.pop('padre')
         with patch.object(tabla,'consultar_ia',return_value=json.dumps(wire)) as ia:
             salida = tabla.clasificar_tabla(origen,estructura)
         cuerpo=json.loads(ia.call_args.args[0][1]['content'])
@@ -90,7 +89,6 @@ class PruebasTabla(unittest.TestCase):
             '3':dict(tipo='documento',padre=None,motivo='Título general de la obra'),
             '4':dict(tipo='partida',padre=None,motivo=None),
             '6':dict(tipo='subpartida',padre=4,motivo=None)})
-        for d in wire['filas'].values():d.pop('padre')
         wire['filas']=dict(reversed(list(wire['filas'].items())))
         with patch.object(tabla,'consultar_ia',return_value=json.dumps(wire)):
             resultado=tabla.clasificar_tabla(origen,estructura)
@@ -109,7 +107,7 @@ class PruebasTabla(unittest.TestCase):
         def responder(mensajes,**kw):
             datos=json.loads(mensajes[1]['content'])
             return json.dumps(dict(dudas=[],filas={str(r['fila']):dict(
-                tipo='partida' if r['fila']==3 else 'subpartida',motivo=None)
+                tipo='partida' if r['fila']==3 else 'subpartida',padre=None if r['fila']==3 else 3,motivo=None)
                 for r in datos['filas_sin_medicion']}))
         with patch.object(tabla,'consultar_ia',side_effect=responder) as ia:
             resultado=tabla.clasificar_tabla(origen,estructura)
@@ -140,16 +138,40 @@ class PruebasTabla(unittest.TestCase):
             self.assertEqual(original,ruta.read_bytes())
 
     def test_rechaza_columnas_inventadas_duplicadas_y_cabecera_falsa(self):
-        for cambio in ("celda", "duplicada", "fila", "bool", "sin_unidad"):
+        for cambio in ("celda", "duplicada", "bool", "sin_unidad"):
             with self.subTest(cambio=cambio):
                 origen, estructura, plan = self.ejemplo()
                 if cambio == "celda": estructura["columnas"]["cantidad"] = "Q999"
                 elif cambio == "duplicada": estructura["columnas"]["cantidad"] = "H2"
-                elif cambio == "fila": estructura["columnas"]["cantidad"] = "Q4"
                 elif cambio == "bool": estructura["encabezado"] = True
                 else: estructura["columnas"]["unidad"] = None
                 with self.assertRaises(ValueError):
                     tabla.materializar_tabla(origen, estructura, plan)
+
+    def test_columnas_con_rotulos_en_varias_filas_y_descripcion_sin_rotulo(self):
+        origen,estructura,plan=self.ejemplo()
+        origen['hojas'][0]['filas'][0]=dict(fila=1,celdas={'H1':'Unidad'})
+        del origen['hojas'][0]['filas'][1]['celdas']['K2']
+        estructura['columnas'].update(descripcion='K4',unidad='H1',cantidad='Q4')
+        datos=tabla.materializar_tabla(origen,estructura,plan)
+        self.assertEqual([r['cantidad'] for r in datos['registros'] if r['tipo']=='concepto'],['1900.21','133.17'])
+        # Un ancla de datos no puede hacer desaparecer trabajos repetidos.
+        origen['hojas'][0]['filas'][5]['celdas'].update(K6=origen['hojas'][0]['filas'][3]['celdas']['K4'],H6='M3/KM',Q6='1900.21')
+        datos=tabla.materializar_tabla(origen,estructura,plan)
+        self.assertEqual(sum(r['tipo']=='concepto' for r in datos['registros']),2)
+
+    def test_cabecera_inferida_no_puede_ocultar_trabajos_medidos(self):
+        origen,estructura,plan=self.ejemplo()
+        estructura['encabezado']=4
+        with self.assertRaisesRegex(ValueError,'cabecera excluiría'):
+            tabla.materializar_tabla(origen,estructura,plan)
+
+    def test_rotulo_posterior_no_se_acepta_como_ancla_de_datos(self):
+        origen,estructura,plan=self.ejemplo()
+        origen['hojas'][0]['filas'][4]['celdas'].update(H5='Unidad',Q5='Cantidad')
+        estructura['columnas']['descripcion']='K5'
+        with self.assertRaisesRegex(ValueError,'no pertenece a un trabajo medido'):
+            tabla.materializar_tabla(origen,estructura,plan)
 
     def test_rechaza_resumen_que_perderia_conceptos_y_plan_incompleto(self):
         for cambio in ("corte", "fila_ajena", "sin_fila", "padre", "sin_motivo"):
@@ -198,7 +220,6 @@ class PruebasTabla(unittest.TestCase):
         plan = dict(filas=deepcopy(plan['filas']),dudas=[])
         plan['filas'].update({'7':dict(tipo='resumen',padre=None,motivo='Resumen final'),
                               '8':dict(tipo='omitir',padre=None,motivo='Resumen final')})
-        for d in plan['filas'].values():d.pop('padre')
         incompleto = deepcopy(plan)
         del incompleto["filas"]["5"]
         with patch.object(tabla, "inspeccionar_excel", return_value=origen), patch.object(

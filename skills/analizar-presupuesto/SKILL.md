@@ -9,7 +9,7 @@ description: >-
 
 # Skill: analizar-presupuesto
 
-## Arranque del agente anfitrión (Cline)
+## Arranque del agente con terminal
 
 Estas instrucciones son para el agente que dispone de terminal. Si recibes esta
 skill dentro de una llamada de clasificación de un script, devuelve solo el JSON
@@ -26,13 +26,15 @@ del contrato de esa etapa; no simules ejecución de herramientas.
    exige hoja Conceptos y columnas fijas. No confíes en conteos de respuestas previas.
    Cuenta conceptos, encabezados y totales por separado; un resultado parcial debe
    indicar su rango. Los 20 conceptos de la guía son una muestra, no un límite global.
-3. Para un catálogo de una tabla estable con cabeceras de descripción, unidad y
-   cantidad entre las primeras 20 filas no vacías, usar
+3. Para un catálogo de columnas estables identificables con evidencia en las
+   primeras 20 filas no vacías (rótulos, incluso en varias filas, o ejemplos medidos), usar
    `python mini_pai_interpretar.py archivo.xlsx --por-tabla --salida carpeta/interpretacion.json`.
    Comprobar que exista `mini_pai_tabla.py`. Esta ruta usa IA para identificar
    columnas y agrupadores; Python recupera los campos íntegros de cada fila.
+   Lee mini-pai/GENERALIZACION.md para el contrato de padres, evidencia y límites.
    No mezclarla con rangos ni --hoja. Otras hojas con datos se declaran pendientes,
-   no procesadas. Si falla, informar el error y no fingir una interpretación completa.
+   no procesadas. Si falla o pide revisión estructural, informar fila/motivo y
+   solicitar aclaración; no forzar aceptación ni fingir una interpretación completa.
    No darla por válida si hay cambios de columnas o descripciones repartidas entre filas.
    La ruta por bloques conserva sus comandos para otras estructuras, pero continúa
    en validación; no usar un resumen del chat para corregir sus campos.
@@ -166,7 +168,12 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   tenga unidad ni cantidad. Distinguirlo de portada, títulos, totales y notas.
 - Identificar el padre por hoja y fila original, incluso cuando no haya clave
   o se repitan claves. No invertir los niveles ni arrastrar una subpartida al
-  cambiar de partida. Reportar jerarquías más profundas o ambiguas.
+  cambiar de partida. Conservar todos los niveles mediante padre: una subpartida
+  puede pertenecer a otra subpartida. Reportar relaciones ambiguas, sin aplanarlas.
+- Una descripción compartida y sus variantes deben conservar su relación y
+  textos originales. Si el hijo no describe el trabajo por sí solo, no buscar ni
+  aprobar matrices usando solo ese fragmento; señalar el contexto pendiente.
+  No concatenar ni reescribir la descripción auxiliar para ocultar ese límite.
 - Seleccionar celdas como evidencia; las herramientas recuperan el texto y
   cantidades originales. No volver a escribir o normalizar sus valores.
 - Explicar cada fila excluida; no convertir metadatos en conceptos para cubrir

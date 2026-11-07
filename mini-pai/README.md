@@ -59,6 +59,12 @@ El Markdown distingue:
 - **Sin candidatos en la búsqueda realizada:** original conservado; no prueba ausencia en todo ConstruBase.
 - **Errores y pendientes:** no se ocultan como resultados resueltos o ausencia de coincidencias.
 
+## Generalización de la entrada
+
+La plantilla fija corresponde a la salida para Neodata. El lector identifica columnas desde evidencia del documento, con rótulos en varias filas o ejemplos de datos, y conserva árboles de agrupación mediante padres por hoja/fila, sin un límite de dos niveles. Los casos ambiguos pueden detenerse para revisión estructural; no se garantiza interpretar cualquier Excel automáticamente.
+
+El [reporte de generalización](GENERALIZACION.md) distingue los cotejos correctos, revalidaciones e intentos rechazados. Estándar ya conserva 22 conceptos y tres agrupadores. original siop y Obra civil siguen pendientes por interpretación de grupos y descripciones compartidas. No se publican reglas particulares para esos archivos ni se los declara resueltos por aceptar un JSON.
+
 ## Estado real
 
 | Componente | Implementado | Límite actual |
@@ -70,7 +76,7 @@ El Markdown distingue:
 | Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
 | Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
 
-En la revisión actual pasaron **172 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+En la revisión actual pasaron **180 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
 
 La corrección de metadatos, clasificación por bloques y jerarquía sobre archivos originales se documenta en [ORIGINALES.md](ORIGINALES.md). Las pruebas funcionales conservan originales por elección del usuario y se distinguen de una aprobación técnica de matrices.
 
@@ -133,8 +139,8 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 
 ## Próximo trabajo, por orden
 
-1. Mantener comprobaciones de extracción y jerarquía sobre los originales. Los resultados actuales y su alcance están en [ORIGINALES.md](ORIGINALES.md); nuevos formatos todavía requieren referencia.
-2. Exponer el coordinador mediante un MCP mínimo para que distintos agentes lo utilicen sin depender de Cline. Sigue pendiente; no duplicar la lógica de los módulos existentes.
+1. Resolver las dudas estructurales y el contexto de descripciones compartidas de forma general, con revisión explícita y cotejos independientes. Ver [GENERALIZACION.md](GENERALIZACION.md). No adaptar instrucciones por archivo ni dar por comercializable el lector.
+2. Comprobar la selección de ruta de lectura y nuevos formatos; después exponer el coordinador mediante un MCP mínimo, sin duplicar sus módulos ni depender de Cline.
 3. Mantener los controles de integridad y resolver las inconsistencias técnicas conocidas del selector antes de confiar en equivalencias automáticas generales. Conservar originales prueba el flujo, no certifica matrices.
 4. Ampliar las referencias expertas y comprobar nuevas entregas y su pegado, conservando el modelo y las guardas actuales.
 5. Cuando el flujo sea confiable, preparar la interfaz familiar; después abordar acceso web para otros usuarios y suscripciones.

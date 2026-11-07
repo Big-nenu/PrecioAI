@@ -92,11 +92,12 @@ def crear_excel(datos, *, final=False):
                        "Observaciones", "Evidencia", "Unidad cliente", "IdCodigo confirmado",
                        "Revisor", "Motivo técnico", "Verificado SQL (UTC)"])
     # Se conservan los encabezados como filas y el parentesco por hoja/fila.
-    rutas, estado, rutas_usadas = {}, {}, {}
+    rutas, etiquetas, estado, rutas_usadas = {}, {}, {}, {}
     for r in datos["registros"]:
         hoja, fila, tipo = r["hoja"], r["fila"], r["tipo"]
         partida, subpartida = estado.get(hoja, (None, None))
-        padre = None if tipo == "partida" else partida if tipo == "subpartida" else subpartida or partida
+        padre_legado = None if tipo == "partida" else partida if tipo == "subpartida" else subpartida or partida
+        padre = r.get("padre", padre_legado)
         observaciones = []
         seleccion = None
         catalogo_sql = None
@@ -104,7 +105,10 @@ def crear_excel(datos, *, final=False):
             etiqueta = r["clave"] or r["descripcion"] or ""
             raiz = rutas.get((hoja, padre), "")
             # No duplicar A cuando el cliente ya proporcionó A.A01 (o A.01).
-            ruta = etiqueta if not raiz or etiqueta.startswith(raiz + ".") else raiz + "." + etiqueta
+            etiqueta_padre = etiquetas.get((hoja,padre), "")
+            sufijo = etiqueta[len(etiqueta_padre)+1:] if etiqueta_padre and etiqueta.startswith(etiqueta_padre+".") else etiqueta
+            ruta = raiz + "." + sufijo if raiz else etiqueta
+            etiquetas[hoja,fila] = etiqueta
             rutas[hoja, fila] = ruta
             if tipo == "partida":
                 partida, subpartida = fila, None

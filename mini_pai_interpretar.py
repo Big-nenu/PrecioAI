@@ -107,7 +107,8 @@ def interpretar(ruta, skill=None, *, hoja=None, fila_inicial=1, fila_final=None,
                 if registro["tipo"] == "partida":
                     contexto = [registro]
                 elif registro["tipo"] == "subpartida":
-                    contexto = [r for r in contexto if r["tipo"] == "partida"] + [registro]
+                    indice = next(i for i,r in enumerate(contexto) if r["fila"] == registro["padre"])
+                    contexto = contexto[:indice+1] + [registro]
             resultado["registros"].extend(datos["registros"])
             resultado["excluidas"].extend(datos["excluidas"])
             resultado["dudas"].extend(datos["dudas"])
@@ -152,15 +153,12 @@ omite el nombre global del contrato, devuelve Edificio como partida y ambos
 subgrupos como subpartidas. Los conceptos pertenecen a Edificio y al subgrupo
 vigente. No inviertas partida y subpartida. Este es un ejemplo semántico,
 no una regla sobre textos, claves o columnas concretos.
-Una partida agrupa conceptos o subpartidas. Una subpartida pertenece a una
-partida. Conserva el orden de las filas y cada ocurrencia, incluso claves repetidas.
+Una partida agrupa conceptos o subpartidas. Una subpartida pertenece a cualquier grupo anterior todavía vigente, incluida otra subpartida. Conserva el orden de las filas y cada ocurrencia, incluso claves repetidas.
 Usa padre para indicar el NÚMERO DE FILA del encabezado padre, no su clave.
-Una partida tiene padre null; una subpartida tiene como padre la fila de su
-partida; un concepto tiene como padre la fila de su subpartida vigente o,
-si no existe subpartida, la de su partida. Sin encabezados, padre es null.
-Al cambiar de partida se reinicia la subpartida. No inventes encabezados ausentes.
-Si hay más niveles
-que los representables o la jerarquía es dudosa, descríbelo en dudas.
+Una partida raíz tiene padre null; una subpartida tiene como padre la fila de su grupo inmediato.
+Un concepto pertenece al último grupo vigente. Hay tantos niveles como estén acreditados.
+Un grupo hermano cierra la rama anterior; no aplanes niveles. Sin encabezados, padre es null.
+Si la jerarquía es dudosa, descríbelo en dudas; no inventes encabezados.
 Cada registro debe tener SOLO: tipo (partida, subpartida, concepto u omitir), hoja,
 fila, padre, motivo y evidencia. motivo es null salvo al omitir una fila.
 No transcribas valores: Python los recupera de las celdas.
@@ -181,8 +179,8 @@ No busques matrices ni hagas consultas SQL."""},
          "son contexto validado de la misma hoja: puedes citarlos como padre, pero NO volver "
          "a emitirlos ni modificarlos. Las filas adicionales son anticipación: cita sus celdas "
          "solo si continúan un registro que empieza en filas_objetivo; no emitas registros "
-         "ni exclusiones para ellas. Una subpartida nueva reemplaza la anterior; una partida "
-         "nueva reinicia ambos niveles. Las filas de contexto y anticipación no requieren "
+         "ni exclusiones para ellas. Una subpartida puede anidarse bajo un grupo vigente o "
+         "cerrar una rama al abrir una hermana; una partida nueva inicia otra raíz. Las filas de contexto y anticipación no requieren "
          "clasificación en este bloque."},
         {"role": "user", "content": json.dumps(contenido, ensure_ascii=False)},
     ]
@@ -267,7 +265,7 @@ def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
             padre = anteriores.get((registro["hoja"], registro["padre"]))
             if padre is None or padre["tipo"] == "concepto":
                 raise ValueError(f"Padre inexistente o no es encabezado en fila {registro['fila']}")
-            if registro["tipo"] == "partida" or (registro["tipo"] == "subpartida" and padre["tipo"] != "partida"):
+            if registro["tipo"] == "partida" or padre["tipo"] not in ("partida", "subpartida"):
                 raise ValueError(f"Tipo incompatible con el padre en fila {registro['fila']}")
             if padre["tipo"] == "partida":
                 registro["partida"] = padre["clave"]
@@ -331,37 +329,37 @@ def validar_jerarquia(registros):
 
     No prueba que la IA haya encontrado todos los encabezados del documento.
     """
-    estado = {}
-    filas_padre = {}
+    estado, anteriores = {}, {}
     for registro in registros:
-        hoja = registro["hoja"]
-        anterior, partida, subpartida = estado.get(hoja, (0, None, None))
-        if registro["fila"] <= anterior:
-            raise ValueError("Registros duplicados o fuera de orden en la hoja")
-        tipo = registro["tipo"]
-        fila_partida, fila_subpartida = filas_padre.get(hoja, (None, None))
-        if tipo == "partida":
-            esperados = (None, None)
-            partida, subpartida = registro["clave"], None
-            padre_esperado = None
-            fila_partida, fila_subpartida = registro["fila"], None
-        elif tipo == "subpartida":
-            esperados = (partida, None)
-            subpartida = registro["clave"]
-            padre_esperado = fila_partida
-            fila_subpartida = registro["fila"]
-        else:
-            esperados = (partida, subpartida)
-            padre_esperado = fila_subpartida or fila_partida
-        if "padre" in registro and registro["padre"] != padre_esperado:
-            raise ValueError(f"Padre inconsistente en {hoja}, fila {registro['fila']}: "
-                             f"se esperaba fila {padre_esperado!r}")
-        if (registro["partida"], registro["subpartida"]) != esperados:
-            raise ValueError(f"Jerarquía inconsistente en {hoja}, fila {registro['fila']}: "
-                             f"según los encabezados anteriores se esperaba partida/subpartida "
-                             f"{esperados!r}; revisar también si clasificaste bien los encabezados")
-        estado[hoja] = (registro["fila"], partida, subpartida)
-        filas_padre[hoja] = (fila_partida, fila_subpartida)
+        hoja, fila, tipo = registro['hoja'], registro['fila'], registro['tipo']
+        if type(fila) is not int or fila <= anteriores.get(hoja,0):
+            raise ValueError('Registros duplicados o fuera de orden en la hoja')
+        activos = estado.get(hoja,[])
+        legado = None
+        if activos and tipo=='subpartida':
+            legado = activos[0]['fila']
+        elif activos and tipo=='concepto':
+            legado = activos[-1]['fila']
+        padre = registro.get('padre',legado)
+        if padre is not None and type(padre) is not int:
+            raise ValueError('Padre inconsistente: debe ser una fila entera')
+        if tipo=='partida':
+            esperados=(None,None)
+            if padre is not None:raise ValueError('Una partida requiere padre null')
+            activos=[registro]
+        elif tipo=='subpartida':
+            indice=next((i for i,r in enumerate(activos) if r['fila']==padre),None)
+            if indice is None:raise ValueError(f'Padre inconsistente en {hoja}, fila {fila}: grupo inexistente o cerrado')
+            esperados=(activos[0]['clave'],activos[indice]['clave'] if indice else None)
+            activos=activos[:indice+1]+[registro]
+        elif tipo=='concepto':
+            if padre != (activos[-1]['fila'] if activos else None):
+                raise ValueError(f'Padre inconsistente en {hoja}, fila {fila}: se esperaba el grupo vigente')
+            esperados=(activos[0]['clave'] if activos else None,activos[-1]['clave'] if len(activos)>1 else None)
+        else:raise ValueError('Tipo de registro inválido')
+        if (registro['partida'],registro['subpartida']) != esperados:
+            raise ValueError(f'Jerarquía inconsistente en {hoja}, fila {fila}: se esperaba {esperados!r}')
+        estado[hoja],anteriores[hoja]=activos,fila
 
 
 def main():
