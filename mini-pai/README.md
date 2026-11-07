@@ -6,13 +6,50 @@ Primera herramienta independiente dentro del repositorio PrecioAI. Convertir pre
 
 **Alcance de esta etapa:** transformar catálogos de conceptos y conservar partidas, subpartidas, códigos, descripciones, unidades y cantidades. No generar todavía matrices nuevas ni construir la plataforma web.
 
-## Flujo deseado (aún no implementado de extremo a extremo)
+## Estado y pruebas: referencia única
+
+Código e instrucciones en el [PR #3](https://github.com/Big-nenu/PrecioAI/pull/3),
+rama `mini-pai-busqueda-revisable`, pendiente de revisión y sin fusionar.
+**127 pruebas automatizadas pasaron** en el último cambio de código.
+
+Para retomar: [CONTINUIDAD.md](CONTINUIDAD.md). Para hacer la prueba desde VS Code:
+[GUIA-CLINE.md](GUIA-CLINE.md), con prompt, comandos y comprobaciones.
+Las secciones fechadas posteriores conservan antecedentes; el flujo actual y la
+convención de entrega final prevalecen sobre las descripciones de borradores iniciales.
+
+Todos los tiempos siguientes son mediciones de la sesión con Nemotron local.
+No son una garantía para otros presupuestos o equipos. Mi revisión y la espera
+por decisiones del usuario se separan de los tiempos automáticos.
+
+| Prueba | Interpretación | Preparación/búsqueda | Comparación | Total medido y límites |
+| --- | ---: | ---: | ---: | --- |
+| 3 conceptos con candidatos guardados | Reutilizada | Reutilizada | 85.736 s | Aproximadamente 88 s con confirmación/exportación; no incluye leer y buscar desde cero |
+| Primera muestra de 20 | 84.070 s | 309.186 s | 357.936 s | 751.951 s: aproximadamente 12:32, incluida confirmación SQL/exportación; seis errores antes de revisión delegada |
+| Primera pasada de correcciones, 20 | 83.623 s | 222.545 s | 367.204 s | 673.372 s solo estas tres fases; aún tenía fallos, no es el resultado final |
+| Reintento focal de planificación, 22/25/41 | Reutilizada | 42.901 s | 47.700 s | Trabajo adicional de depuración; no sustituye una medición limpia |
+| Comparación completa con contrato compacto, 20 | Reutilizada | Reutilizada con reintentos documentados | 349.760 s | Había 17 conceptos con candidatos frente a 14 en la primera muestra; no es una comparación controlada de aceleración |
+| Validación final de puestos: 3 casos y control de piedra | Reutilizada | Mismos cinco candidatos históricos | 70.693 s de etapa | Confirmó las tres matrices preferidas primeras; ninguna selección automática en el control |
+
+La versión consolidada revalidó cuatro propuestas IA guardadas y las comprobó en
+SQL, sin nuevas inferencias: **esos milisegundos no son velocidad de generación**.
+Quedaron cuatro selecciones IA, trece pendientes y tres búsquedas vacías, sin errores
+operativos después de las correcciones y repeticiones. El Excel de prueba completo
+usó además siete elecciones delegadas: once matrices y nueve originales.
+
+**Pendiente:** una ejecución limpia de extremo a extremo con el código actual,
+comparación de embeddings y de D1/D3, y la conversación completa en Cline con
+comprobación del nuevo archivo en Neodata. Los modelos nuevos están descargados,
+pero no integrados ni comparados en este flujo. Los archivos privados y las
+mediciones por llamada permanecen fuera de Git; ubicación y procedencia en
+[CONTINUIDAD.md](CONTINUIDAD.md).
+
+## Flujo actual asistido por IA y revisión del usuario
 
 1. El usuario proporciona un Excel de presupuesto. No asumir columnas, encabezados ni jerarquías fijas.
 2. La IA identifica partidas, subpartidas y conceptos; extrae código, descripción, unidad y cantidad sin perder la relación con el archivo original. Las ambigüedades se reportan, no se inventan.
 3. Para cada concepto, identifica palabras clave y atributos técnicos y consulta ConstruBase **en modo lectura**. Una coincidencia de palabras no demuestra equivalencia técnica; comparar también unidad, alcance y condiciones.
 4. Si se encuentra una equivalencia técnicamente válida, utilizar el **Código** del concepto de ConstruBase y conservar en **Código auxiliar** la clave original del cliente. Mantener la descripción propia del concepto de ConstruBase y la descripción original en **Descripción auxiliar**.
-5. Si no se ha confirmado una equivalencia, conservar código y descripción completos del cliente en los auxiliares, así como unidad y cantidad originales. Dejar vacíos los campos de ConstruBase y señalar el caso en el reporte. No inventar códigos, descripciones ni coincidencias. Resolver o marcar conflictos cuando un mismo código principal corresponda a descripciones diferentes.
+5. Para casos dudosos, mostrar hasta tres candidatos y la opción de conservar el original sin matriz, esperando la decisión del usuario. Sin candidatos en una búsqueda válida o con elección explícita de conservar original, repetir código y descripción del cliente en campos principales y auxiliares, con unidad y cantidad originales. Si falta código, solicitarlo antes de la entrega final. Los campos principales vacíos quedan reservados a borradores pendientes. No inventar datos de ConstruBase.
 6. Generar el Excel con la estructura de partidas/subpartidas y un reporte de conceptos encontrados, no encontrados y dudosos.
 7. El usuario revisa el archivo y realiza el copiado manual a Neodata PU Win+. La comprobación manual del resultado no requiere desarrollar automatización de Neodata.
 
