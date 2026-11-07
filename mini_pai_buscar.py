@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import re
+import time
 
 from buscar_conceptos import buscar, conectar_sql
 from mini_pai_interpretar import validar_jerarquia
@@ -172,6 +173,75 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False, c
     return salida
 
 
+def buscar_con_indice(presupuesto, conexion, ruta, *, base="http://127.0.0.1:11434"):
+    """Recupera vecinos del catálogo vigente; conserva el contrato del selector."""
+    import indice_local
+    from laboratorio_coincidencias import (comparar_unidad, embeddings, entorno_modelos,
+                                           post, prefijos, similitudes)
+    validar_entrada(presupuesto, {})
+    if presupuesto.get('busquedas_construbase'):
+        raise ValueError('Usar la interpretación sin búsquedas previas; no reemplazar decisiones')
+    modelo = 'embeddinggemma-2:270m'
+    entorno = entorno_modelos(base, [modelo])
+    disponibles = entorno.get('modelos', [])
+    if not disponibles:
+        raise ValueError('EmbeddingGemma 270m no disponible en Ollama: ' + entorno.get('error', modelo))
+    digest = disponibles[0]['digest']
+    inicio = time.perf_counter()
+    cursor = conexion.cursor()
+    cursor.execute("""SELECT c.IdCodigo,c.Codigo,
+COALESCE(NULLIF(c.DescripcionLarga,N''),c.Descripcion),c.IdUnidad,c.IdTipo,u.Unidad
+FROM dbo.PuCatalogo c LEFT JOIN dbo.PuUnidades u ON u.IdUnidad=c.IdUnidad
+WHERE c.IdTipo=4 ORDER BY c.IdCodigo""")
+    catalogo = [dict(id=str(r[0]), codigo=r[1], descripcion=r[2], IdUnidad=r[3],
+                     IdTipo=r[4], unidad=r[5]) for r in cursor.fetchall()]
+    tiempos = dict(segundos_sql=time.perf_counter() - inicio)
+    identidad = indice_local.firma(catalogo, modelo, digest)
+    salida = deepcopy(presupuesto)
+    conceptos = [r for r in salida['registros'] if r['tipo'] == 'concepto']
+    validos = [r for r in conceptos if r['descripcion'] and r['descripcion'].strip()]
+    try:
+        inicio = time.perf_counter()
+        construccion = indice_local.construir(ruta, catalogo, modelo, digest, base=base)
+        documentos, vectores = indice_local.cargar(ruta, identidad)
+        tiempos['segundos_indice'] = time.perf_counter() - inicio
+        inicio = time.perf_counter()
+        resultados = {}
+        if validos:
+            qp, _ = prefijos(modelo)
+            preguntas = embeddings(base, modelo, [qp + r['descripcion'] for r in validos], lote=32)
+            for r, puntos in zip(validos, similitudes(vectores, preguntas)):
+                orden = sorted(range(len(documentos)), key=lambda j: (
+                    comparar_unidad(r['unidad'], documentos[j]['unidad']) != 'igual',
+                    -float(puntos[j]), documentos[j]['id']))
+                candidatos = []
+                for j in orden[:5]:
+                    d = documentos[j]
+                    comparacion = comparar_unidad(r['unidad'], d['unidad'])
+                    candidatos.append(dict(IdCodigo=int(d['id']), Codigo=d['codigo'],
+                        DescripcionLarga=d['descripcion'], IdUnidad=d['IdUnidad'], IdTipo=d['IdTipo'],
+                        unidad_catalogo=d['unidad'], comparacion_unidad=comparacion,
+                        similitud_coseno=float(puntos[j]), requiere_revision=True,
+                        advertencias=['Vecino semántico, no equivalencia confirmada'] +
+                            ([] if comparacion == 'igual' else ['Unidad distinta o no acreditada; no se convierten cantidades'])))
+                resultados[r['hoja'], r['fila']] = candidatos
+        salida['busquedas_construbase'] = [dict(hoja=r['hoja'], fila=r['fila'],
+            candidatos=resultados.get((r['hoja'], r['fila']), []), seleccion=None, requiere_revision=True,
+            origen_terminos='indice_semantico', recuperados=len(catalogo),
+            estado='candidatos_por_revisar' if (r['hoja'], r['fila']) in resultados else 'requiere_descripcion')
+            for r in conceptos]
+        tiempos['segundos_consultas'] = time.perf_counter() - inicio
+        salida['recuperacion_indice'] = dict(modelo=modelo, digest=digest, identidad=identidad,
+            indice=str(Path(ruta).resolve()), construccion=construccion, **tiempos)
+        salida['aviso_busqueda'] = ('Índice del catálogo SQL vigente, coseno y unidad coincidente primero; '
+            'hasta cinco vecinos por concepto. No hay umbral de ausencia calibrado: candidatos no implican '
+            'equivalencia ni autorizan selecciones. Sin descripción queda pendiente, no sin coincidencias.')
+    finally:
+        # Liberar VRAM antes de llamar al evaluador principal.
+        post(base, '/api/embed', dict(model=modelo, input=[], keep_alive=0))
+    return salida
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("presupuesto", help="JSON generado por mini_pai_interpretar")
@@ -179,7 +249,10 @@ def main():
     parser.add_argument("--env", default=".env", help="Configuración SQL local")
     parser.add_argument("--terminos", help="JSON opcional: mapa hoja:fila a términos de búsqueda")
     parser.add_argument("--ampliar", action="store_true", help="Recuperar hasta 500 por intento antes de ordenar")
+    parser.add_argument("--indice", help="SQLite local de EmbeddingGemma 270m; usa catálogo SQL vigente en lectura")
     args = parser.parse_args()
+    if args.indice and (args.terminos or args.ampliar):
+        parser.error('--indice no se combina con --terminos ni --ampliar')
     destino = Path(args.salida)
     ruta_env = Path(args.env)
     if not ruta_env.is_absolute():
@@ -190,11 +263,18 @@ def main():
             if (origen.resolve() == destino.resolve()
                     or origen.exists() and destino.exists() and origen.samefile(destino)):
                 parser.error("La salida debe ser distinta de los archivos de entrada/configuración")
+    if args.indice:
+        ruta_indice = Path(args.indice)
+        if (destino.exists() or destino.is_symlink() or ruta_indice.suffix.lower() != '.sqlite'
+                or any(ruta_indice.resolve() == Path(p).resolve()
+                       for p in (args.presupuesto, ruta_env, destino))):
+            parser.error('Usar salida nueva e índice .sqlite distinto de entradas, configuración y salida')
     presupuesto = json.loads(Path(args.presupuesto).read_text(encoding="utf-8"))
     terminos = json.loads(Path(args.terminos).read_text(encoding="utf-8")) if args.terminos else {}
     validar_entrada(presupuesto, terminos)
     with conectar_sql(ruta_env) as conexion:
-        datos = buscar_presupuesto(presupuesto, conexion, terminos=terminos, ampliar=args.ampliar)
+        datos = (buscar_con_indice(presupuesto, conexion, args.indice) if args.indice else
+                 buscar_presupuesto(presupuesto, conexion, terminos=terminos, ampliar=args.ampliar))
     destino.parent.mkdir(parents=True, exist_ok=True)
     destino.write_text(json.dumps(datos, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
     print(f"{len(datos['busquedas_construbase'])} conceptos consultados; candidatos pendientes de revisión")

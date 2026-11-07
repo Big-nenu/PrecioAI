@@ -5,9 +5,25 @@ en modo lectura y añade `busquedas_construbase`. Conserva los registros origina
 sus claves, descripciones, cantidades, jerarquía, evidencia, dudas, exclusiones y
 alcance parcial. No selecciona matrices ni modifica el catálogo o el archivo de entrada.
 
+## Recuperación semántica con índice local (2026-11-07)
+
+La ruta `--indice` conecta EmbeddingGemma 270m al contrato de candidatos del selector existente. No necesita que Nemotron redacte consultas de palabras clave para cada concepto. Lee mediante SELECT los registros tipo 4 y unidades de ConstruBase, comprueba la identidad del catálogo y el digest del modelo y reutiliza el SQLite local. Una ruta nueva construye el índice; otra identidad exige otra ruta, sin sobrescribir el índice anterior.
+
+```powershell
+python mini_pai_buscar.py salidas/ejecucion-001/interpretacion.json --indice datos_privados/indices/catalogo-embeddinggemma.sqlite --salida salidas/ejecucion-001/candidatos.json
+python mini_pai_seleccionar.py salidas/ejecucion-001/candidatos.json --salida salidas/ejecucion-001/evaluacion.json
+python mini_pai_revision.py salidas/ejecucion-001/evaluacion.json --salida salidas/ejecucion-001/opciones.md
+```
+
+Para reutilizar un índice ya construido, pasar su ruta real en lugar del nombre de ejemplo. La muestra usa el índice identificado en [INTEGRACION-INDICE.md](INTEGRACION-INDICE.md). Requiere Ollama local con `embeddinggemma-2:270m` y las dependencias de laboratorio ya existentes (`requirements-laboratorio.txt`); no se cambia el modelo principal ni `.env`.
+
+El coseno se calcula contra todas las descripciones completas, sin truncar ni exigir coincidencia literal. Se ordena por unidad textual coincidente primero, coseno después e ID para empates; devuelve hasta cinco vecinos. Se conserva exactamente el código, descripción completa, unidad y demás campos originales del contrato SQL. Los vecinos no son equivalencias: el índice no tiene umbral calibrado para declarar que una matriz no existe. Una descripción ausente queda pendiente; los errores no se convierten en búsquedas vacías.
+
+`recuperacion_indice` registra identidad, modelo, ruta, documentos nuevos/reutilizados y tiempos de SQL, índice y consultas. La salida y los registros originales se conservan separados. La nueva ruta rechaza una entrada con búsquedas previas para no reemplazar decisiones. No combinar `--indice` con `--terminos` o `--ampliar`. EmbeddingGemma se descarga de VRAM antes de usar Nemotron. Las selecciones siguen requiriendo evidencia y revalidación SQL; los originales y ConstruBase permanecen intactos.
+
 ## Preparación de consultas mediante IA (2026-11-06)
 
-El punto de entrada recomendado es ahora `mini_pai_claves.py`. Antes de consultar
+La alternativa por palabras clave se conserva en `mini_pai_claves.py`. Antes de consultar
 ConstruBase, Nemotron interpreta la actividad y atributos de la descripción y
 unidad originales. Los nombres de atributos son abiertos: material, resistencia,
 espesor o procedimiento son ejemplos, no columnas ni vocabulario obligatorio.

@@ -94,7 +94,7 @@ Pasadas, repeticiones y revalidaciones están en el [historial](historial/README
 
 Los ensayos exploratorios de Nemotron, D1 y TEV1 están en [EVALUADORES.md](EVALUADORES.md); no justifican sustituirlo. Las herramientas del [laboratorio](LABORATORIO.md) permiten comparar recuperación y decisiones por separado.
 
-Se ejecutaron [pruebas separadas de embeddings, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). EmbeddingGemma 270m recuperó más referencias útiles que Qwen en la muestra de 20 conceptos contra 19,418 registros. Los índices quedaron guardados localmente y se reutilizaron sin recalcular el catálogo. Es trabajo del laboratorio: todavía falta integrarlo al buscador del producto y medir el flujo completo. Las decisiones rápidas no sustituyen las guardas técnicas ni la revisión de dudas.
+Se ejecutaron [pruebas separadas de embeddings, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). EmbeddingGemma 270m recuperó más referencias útiles que Qwen en la muestra de 20 conceptos contra 19,418 registros. La ruta [mini_pai_buscar.py --indice](BUSQUEDA.md) ya conecta ese índice al selector existente, conservando Nemotron y la revalidación SQL. Ver [prueba integrada y límites](INTEGRACION-INDICE.md). Las decisiones rápidas no sustituyen las guardas técnicas ni la revisión de dudas.
 
 ## Desarrollo y uso actual
 
@@ -112,6 +112,8 @@ python mini_pai_seleccionar.py salidas/ejecucion-001/candidatos.json --salida sa
 python mini_pai_revision.py salidas/ejecucion-001/evaluacion.json --salida salidas/ejecucion-001/opciones.md
 ```
 
+Para la recuperación semántica, sustituir el comando `mini_pai_claves.py` por `mini_pai_buscar.py ... --indice ruta/al/indice.sqlite --salida ...`, usando la interpretación sin búsquedas previas. No ejecutar las dos rutas sobre la misma salida. La [guía de búsqueda](BUSQUEDA.md) explica creación y reutilización del índice.
+
 Revisar alcance y salidas entre etapas. Después de recibir decisiones reales, usar `mini_pai_confirmar.py` según [GUIA-CLINE.md](GUIA-CLINE.md). Con el JSON resuelto:
 
 ```powershell
@@ -125,10 +127,10 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 
 ## Próximo trabajo, por orden
 
-1. Usar la interpretación tabular cotejada del presupuesto actual para probar búsqueda y comparación técnica. Validar otros formatos antes de declarar resuelta la extracción general.
+1. Corregir y comprobar la evaluación de la acción principal: la prueba integrada detectó una confusión entre construir y demoler, retirada mediante auditoría de la muestra. Resolver con el usuario las dudas del Excel de revisión; esa auditoría no es una guarda general del selector.
 2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
-3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel y reporte; medir cada etapa y revisar el pegado.
-4. Integrar la recuperación con índice solo después de revisar sus resultados y límites; conservar Nemotron, las guardas y los controles de incompatibilidades reales. No sustituirlo por la velocidad de otro evaluador.
+3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel final y reporte; medir también una extracción nueva y revisar el pegado. La muestra integrada ya mide recuperación, selección y exportación sobre una interpretación reutilizada; no es el presupuesto completo.
+4. Validar la recuperación integrada y ampliar las referencias expertas; conservar Nemotron, las guardas y los controles de incompatibilidades reales. No sustituirlo por la velocidad de otro evaluador.
 5. Cuando el flujo sea confiable, preparar la interfaz familiar; después abordar acceso web para otros usuarios y suscripciones.
 
 ## Fuera del trabajo inmediato

@@ -9,7 +9,7 @@ Se adapta el enfoque de `tests/embed_lab.py` y los prefijos de StoneWave;
 no se importa su motor ni se accede a su memoria. La atribución MIT está en
 `references/stonewave-license.txt`.
 
-Pruebas reales más recientes: [recuperación sobre catálogo completo, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). `indice_local.py` reutiliza vectores de catálogo y reanuda lotes pendientes; todavía no está conectado al buscador del producto. No cambiar el modelo principal ni aprobar matrices a partir de estos rankings.
+Pruebas separadas: [recuperación sobre catálogo completo, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). `indice_local.py` reutiliza vectores de catálogo y reanuda lotes pendientes. La [integración posterior con mini_pai_buscar.py --indice](INTEGRACION-INDICE.md) ya genera candidatos para el selector existente y un Excel de revisión; no convierte rankings en equivalencias ni sustituye Nemotron.
 
 ## Ejecutar
 

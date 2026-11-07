@@ -7,7 +7,7 @@ Documentación vigente: [PrecioAI](../README.md) y [Mini-PAI](../mini-pai/README
 | Grupo | Archivos | Responsabilidad |
 | --- | --- | --- |
 | Entrada flexible | `mini_pai_interpretar.py`, `mini_pai_tabla.py`, `mini_pai_completar.py` | Inspección, clasificación por bloques, evidencia y correcciones explícitas |
-| Recuperación | `mini_pai_claves.py`, `mini_pai_buscar.py`, `buscar_conceptos.py`, `ranking_conceptos.py` | Consultas propuestas por IA, acceso SQL y orden de candidatos |
+| Recuperación | `mini_pai_claves.py`, `mini_pai_buscar.py`, `indice_local.py`, `buscar_conceptos.py`, `ranking_conceptos.py` | Consultas por IA o índice semántico persistente, acceso SQL y orden de candidatos |
 | Decisiones | `mini_pai_seleccionar.py`, `mini_pai_revision.py`, `mini_pai_confirmar.py` | Comparación técnica, revisión, decisiones y comprobación SQL |
 | Entrega | `mini_pai_exportar.py` | Excel y Markdown con el formato existente |
 | Compartidos | `proveedor_ia.py`, `numeros_tecnicos.py` | Configuración y llamadas IA; comprobaciones numéricas |

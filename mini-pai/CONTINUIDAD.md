@@ -97,3 +97,15 @@ Se ejecutaron las tres pruebas autorizadas: recuperación con EmbeddingGemma 270
 - Código mínimo: `indice_local.py`, prefijo oficial de Qwen y seis pruebas nuevas. Pasaron 151 pruebas automatizadas; se cotejó nuevamente el catálogo por SELECT y el SHA256 del Excel original.
 
 Evidencia privada completa y reporte por concepto: `salidas/tres-pruebas-2026-11-07/`. No subir esos archivos ni los índices a GitHub. El siguiente incremento propuesto es conectar la recuperación con índice al buscador existente, conservando Nemotron, las guardas y la revalidación SQL. Falta medir ese flujo integrado, ampliar referencias expertas y revisar las decisiones dudosas; no se generó otro Excel, ni se implementó MCP, memoria de decisiones o interfaz. PR #3 sin fusionar.
+
+## Índice conectado y Excel de revisión — 7 de noviembre de 2026
+
+El incremento propuesto arriba ya se implementó: `mini_pai_buscar.py --indice archivo.sqlite` utiliza el catálogo SQL vigente, valida/reutiliza EmbeddingGemma 270m y devuelve el contrato existente de candidatos a `mini_pai_seleccionar.py`. No se cambió el selector ni el exportador; la búsqueda anterior sigue disponible. [Método, comandos y límites](INTEGRACION-INDICE.md).
+
+Sobre los mismos 20 conceptos y cuatro agrupadores de la muestra anterior: 80 campos cotejados sin diferencias, 19,418 vectores reutilizados y cero nuevos. Recuperación completa 4.399 s, con carga y SQL; selección Nemotron 430.901 s en veinte llamadas, sin errores de API/contrato. No se midió otra extracción IA ni el presupuesto completo.
+
+El modelo propuso cinco selecciones que pasaron guardas y SQL. La auditoría retiró una: construir un cimiento no equivale a demolerlo. El Excel revisado conserva cuatro propuestas de acero verificadas otra vez por SELECT y 16 pendientes, con opciones para el usuario. Se conservó sin alterar la ejecución original; el JSON revisado identifica la intervención de Codex. No se respondió por el usuario ni se generó un Excel final. La exportación final se comprobó bloqueada por las decisiones pendientes.
+
+Evidencia y entregables privados en `salidas/integracion-indice-20-2026-11-07/`: `evaluacion-sin-auditar.json`, `evaluacion-revisada.json`, `mediciones.json`, `llamadas.json`, `presupuesto-revision.xlsx` y `reporte-prueba.md`. Se reabrió el libro y se cotejaron columnas, jerarquía, datos originales y datos SQL de las matrices vigentes; no se repitió el pegado en Neodata. Pasaron 156 pruebas automatizadas (cinco nuevas). Los hashes del original, muestra y `.env` permanecieron intactos.
+
+**Siguiente prioridad:** corregir y comprobar la evaluación de la acción principal (construir/demoler) antes de confiar en la selección automática. La auditoría específica de este ensayo no es una guarda general del producto. Revisar con el usuario alcance/inclusiones de las propuestas, resolver las 16 dudas y generar el Excel final. La comparación sigue dominando el tiempo. La skill instalada no se modificó; la guía del repositorio explica la nueva ruta para cualquier agente con terminal. PR #3 sin fusionar.
