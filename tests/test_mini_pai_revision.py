@@ -25,6 +25,40 @@ class PruebasRevisionUsuario(unittest.TestCase):
         conexion.cursor.assert_not_called()
         return salida
 
+    def test_codigo_final_no_admite_descripciones_distintas_incluyendo_originales(self):
+        for matriz in (False, True):
+            for mismo_texto in (False, True):
+                with self.subTest(matriz=matriz, mismo_texto=mismo_texto):
+                    datos = deepcopy(self.datos)
+                    if matriz:
+                        datos = confirmar.confirmar(datos, self.ejemplo.decisiones(), self.ejemplo.conexion(datos))
+                        codigo = 'CB-001'
+                        descripcion = datos['busquedas_construbase'][0]['seleccion']['catalogo']['DescripcionLarga']
+                    else:
+                        datos['busquedas_construbase'][0].update(candidatos=[], estado='sin_candidatos_en_busqueda')
+                        codigo = datos['registros'][2]['clave']
+                        descripcion = datos['registros'][2]['descripcion']
+                    otro = dict(datos['registros'][2], fila=4, clave=codigo,
+                                descripcion=descripcion if mismo_texto else 'Otra descripción completa')
+                    datos['registros'].append(otro)
+                    datos['busquedas_construbase'].append(dict(hoja='Obra', fila=4, seleccion=None,
+                                                              candidatos=[], estado='sin_candidatos_en_busqueda'))
+                    if mismo_texto:
+                        libro = exportar.crear_excel(datos, final=True)
+                        self.assertEqual(libro['Catálogo']['B4'].value, libro['Catálogo']['B5'].value)
+                        libro.close()
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'Código.*descripciones'):
+                            exportar.crear_excel(datos, final=True)
+                        with tempfile.TemporaryDirectory() as carpeta:
+                            entrada, salida = Path(carpeta)/'entrada.json', Path(carpeta)/'salida.xlsx'
+                            entrada.write_text(json.dumps(datos), encoding='utf-8')
+                            with patch('sys.argv', ['exportar', str(entrada), '--final', '--salida', str(salida)]):
+                                with self.assertRaisesRegex(ValueError, 'Código.*descripciones'):
+                                    exportar.main()
+                            self.assertFalse(salida.exists())
+                            self.assertFalse(salida.with_suffix('.md').exists())
+
     def test_original_sin_matriz_auditoria_excel_y_reporte(self):
         antes = deepcopy(self.datos)
         datos = self.manual()

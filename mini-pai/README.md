@@ -25,7 +25,7 @@ Mini-PAI es el primer producto de [PrecioAI (PAI)](../README.md). Ahorra la capt
 - No forzar equivalencias para aumentar las selecciones. Diferencias e información insuficiente requieren revisión.
 - No presentar un borrador o una ejecución parcial como presupuesto final. No exportar si el usuario lo ha prohibido.
 
-Son condiciones de aceptación, no una afirmación de que todas estén verificadas hoy. La guarda existente detecta códigos de matrices seleccionadas con distinta descripción o unidad; falta comprobar el conflicto general incluyendo originales conservados. Cobertura completa y comportamiento autónomo siguen pendientes de validación.
+Son condiciones de aceptación, no una afirmación de que todas estén verificadas hoy. La guarda del exportador final también rechaza códigos con descripciones distintas entre originales conservados y matrices seleccionadas; permite repetir código y descripción idénticos. Cobertura completa y comportamiento autónomo siguen pendientes de validación.
 
 ## Formato de salida
 
@@ -68,11 +68,13 @@ El Markdown distingue:
 | Recuperación | Consultas propuestas por IA, SQL parametrizado y candidatos revisables | AND/LIKE y ranking limitado pueden dejar fuera matrices útiles |
 | Comparación | Nemotron, evidencia técnica, validaciones y verificación SQL | Casos dudosos requieren revisión; no garantiza equivalencia universal |
 | Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
-| Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; flujo autónomo y conflictos pendientes |
+| Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
 
-Tras esta reorganización pasaron las mismas **127 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+Tras la auditoría pasaron **129 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
 
-En la prueba asistida del presupuesto de **78 conceptos**, el resumen de Cline atribuyó a un concepto la cantidad e importe de otro. Falta cotejar sus resultados estructurados para ubicar el error. **No está demostrado que la mezcla provenga del extractor Python**, ni basta cambiar el prompt para considerarla resuelta.
+La [auditoría de extracción del 7 de noviembre](AUDITORIA-EXTRACCION.md) reprodujo fallos reales con Nemotron: encabezados omitidos o mal clasificados y once campos presentes tratados como ausentes en los 44 conceptos aceptados hasta la fila 70. La ejecución se detuvo en el bloque 71–75 tras 285.779 s y veinte llamadas. No es una extracción completa ni una medición del flujo final. La cantidad cruzada entre filas fue rechazada por la validación existente.
+
+Los cambios experimentales de instrucciones y contexto no resolvieron todos los controles y se retiraron. Se conserva la corrección comprobada del exportador para conflictos de códigos, sin cambiar el formato. **Falta corregir el contrato de extracción antes de avanzar a SQL.**
 
 ### Mediciones anteriores
 
@@ -118,7 +120,7 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 ## Próximo trabajo, por orden
 
 1. Auditar inspección → interpretación → datos guardados en el presupuesto actual. Comprobar cobertura, jerarquía y correspondencia de celdas; localizar y corregir la mezcla antes de confiar en búsquedas posteriores.
-2. Comprobar las reglas de integridad pendientes, especialmente códigos con descripciones distintas, e implementar únicamente las validaciones que falten.
+2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
 3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel y reporte; medir cada etapa y revisar el pegado.
 4. Comparar los modelos pendientes sin sustituir Nemotron hasta demostrar mejora; conservar controles de incompatibilidades reales.
 5. Cuando el flujo sea confiable, preparar la interfaz familiar; después abordar acceso web para otros usuarios y suscripciones.

@@ -60,6 +60,7 @@ def crear_excel(datos, *, final=False):
     busquedas = {}
     seleccionadas = {}
     codigos = {}
+    descripciones_finales = {}
     origenes = {(r["hoja"], r["fila"]): r for r in datos["registros"]}
     for b in datos.get("busquedas_construbase", []):
         identidad = (b["hoja"], b["fila"])
@@ -163,6 +164,11 @@ def crear_excel(datos, *, final=False):
                         observaciones.append("Decisión: " + b["sin_matriz"]["motivo"])
             if final and (not ruta or not descripcion_salida or not descripcion_salida.strip()):
                 raise ValueError(f"{hoja}:{fila}: faltan Partida o Descripción completa para el Excel final")
+            if final:
+                if (codigo_salida in descripciones_finales
+                        and descripciones_finales[codigo_salida] != descripcion_salida):
+                    raise ValueError(f"{hoja}:{fila}: Código {codigo_salida!r} con descripciones distintas; revisar conflicto")
+                descripciones_finales[codigo_salida] = descripcion_salida
             valores = [ruta, codigo_salida, auxiliar,
                        descripcion_salida, r["descripcion"],
                        catalogo_sql["unidad_catalogo"] if catalogo_sql else r["unidad"], cantidad, 4]

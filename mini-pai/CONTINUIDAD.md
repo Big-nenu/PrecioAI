@@ -66,3 +66,9 @@ python -m unittest discover -q
 ```
 
 Si TEMP del entorno restringido impide las pruebas, dirigir TEMP/TMP a un directorio nuevo dentro del workspace; no alterar la lógica para sortear los tests. Los modelos y SQL no son necesarios para esta suite. Las pruebas nativas se ejecutan aparte y sus tiempos deben registrarse por fase.
+
+## Auditoría del 7 de noviembre de 2026
+
+Ver [AUDITORIA-EXTRACCION.md](AUDITORIA-EXTRACCION.md). La ejecución de referencia falló en filas 71–75 después de 285.779 s y veinte llamadas. En los 44 conceptos parciales hasta fila 70 hubo once campos omitidos y errores de jerarquía; no existe un JSON final válido. Los focos no resolvieron todos los controles y los cambios experimentales del intérprete se retiraron. Sigue pendiente corregir la extracción, antes de SQL y modelos adicionales.
+
+La corrección definitiva de esta auditoría está en el exportador: impide códigos iguales con descripciones distintas también entre originales conservados y matrices seleccionadas. Pasaron 129 pruebas. Evidencia privada bajo salidas/auditoria-extraccion-2026-11-07/. No se modificó presupuesto, configuración, ConstruBase, formato Excel ni skill instalada; no se generó un Excel nuevo.
