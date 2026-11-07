@@ -58,4 +58,14 @@ En otra computadora o después de clonar solo GitHub, la muestra privada no esta
 
 Se probaron cotejo, controles negativos, aislamiento de configuración, ausencia de SQL, reportes de fallos/modelos no disponibles, interrupción con guardado parcial, protección de entradas, rechazo de muestra alterada e instrumentación. Los ensayos unitarios utilizan respuestas simuladas y no constituyen resultados de Nemotron ni Gemma. La comparación real la ejecuta el usuario con los comandos anteriores.
 
-Al preparar esta herramienta pasaron las 145 pruebas de la suite, incluidas ocho nuevas del script. No se ejecutaron inferencias reales de esta comparación.
+Al preparar esta herramienta pasaron las 145 pruebas de la suite, incluidas ocho nuevas del script. En esa preparación no se ejecutaron inferencias reales.
+
+## Resultados compartidos por el usuario — 7 de noviembre de 2026
+
+Se revisaron los JSON y Markdown de `salidas/prueba-modelos-20261107-085548-696404/`, con las mismas entradas y configuración por modelo. Nemotron recuperó 78 conceptos y 15 agrupadores sin diferencias con la referencia, en 53.397 s. Gemma falló en la extracción por una referencia de padre inválida, tras 107.846 s; no produjo una interpretación final válida.
+
+En la muestra técnica fija, ambos completaron 18 casos y hubo dos sin candidatos. Nemotron tardó 376.071 s y Gemma 810.076 s; no hubo errores de API. Los tiempos totales fueron 429.662 s y 918.778 s, respectivamente. Son tiempos de esas tareas y ejecuciones, no del flujo completo con SQL y revisión humana.
+
+Nemotron produjo cuatro propuestas que pasaron las guardas locales y Gemma tres; **no son conteos de equivalencias correctas**. La propuesta Nemotron de cimbra reconoce inclusiones no acreditadas y requiere revisión. También se observaron criterios inconsistentes entre diámetros de acero. Ninguno seleccionó automáticamente los controles de piedra/concreto o plantilla de espesor distinto, aunque clasificarlos como insuficientes tampoco acredita una clasificación técnica correcta.
+
+Se mantiene Nemotron. La comparación posterior de recuperación, caché y evaluadores está en [PRUEBA-RECUPERACION-DECISIONES.md](PRUEBA-RECUPERACION-DECISIONES.md). Esta prueba no midió agentes ni herramientas autónomas; no demuestra cuál modelo es mejor en general.

@@ -90,11 +90,11 @@ Pasadas, repeticiones y revalidaciones están en el [historial](historial/README
 
 ### Modelos
 
-**Nemotron sigue como principal.** Para ejecutar la comparación con Gemma y compartir los Markdown, usar [PRUEBA-MODELOS.md](PRUEBA-MODELOS.md). El script prueba extracción y candidatos fijos sin SQL ni cambios de configuración; la muestra privada está preparada en esta computadora. La comparación real la ejecuta el usuario.
+**Nemotron sigue como principal.** La [comparación real con Gemma](PRUEBA-MODELOS.md) ejecutada por el usuario favoreció a Nemotron en esta muestra: extracción completa frente a fallo, y menor tiempo técnico. Las propuestas todavía requieren validación semántica; no son equivalencias certificadas.
 
 Los ensayos exploratorios de Nemotron, D1 y TEV1 están en [EVALUADORES.md](EVALUADORES.md); no justifican sustituirlo. Las herramientas del [laboratorio](LABORATORIO.md) permiten comparar recuperación y decisiones por separado.
 
-Falta evaluar la combinación propuesta de embeddings, D1/D3 y Nemotron sobre los mismos conceptos y candidatos, midiendo calidad, tiempo y memoria. Tener modelos descargados no equivale a tenerlos integrados o probados en este flujo. Cambiar modelos no sustituye corregir errores de integridad.
+Se ejecutaron [pruebas separadas de embeddings, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). EmbeddingGemma 270m recuperó más referencias útiles que Qwen en la muestra de 20 conceptos contra 19,418 registros. Los índices quedaron guardados localmente y se reutilizaron sin recalcular el catálogo. Es trabajo del laboratorio: todavía falta integrarlo al buscador del producto y medir el flujo completo. Las decisiones rápidas no sustituyen las guardas técnicas ni la revisión de dudas.
 
 ## Desarrollo y uso actual
 
@@ -128,7 +128,7 @@ Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [co
 1. Usar la interpretación tabular cotejada del presupuesto actual para probar búsqueda y comparación técnica. Validar otros formatos antes de declarar resuelta la extracción general.
 2. Mantener los controles de integridad: los conflictos de código y descripción en entrega final ya están protegidos, incluidos originales conservados.
 3. Ejecutar una prueba completa reproducible con decisiones humanas reales, Excel y reporte; medir cada etapa y revisar el pegado.
-4. Comparar los modelos pendientes sin sustituir Nemotron hasta demostrar mejora; conservar controles de incompatibilidades reales.
+4. Integrar la recuperación con índice solo después de revisar sus resultados y límites; conservar Nemotron, las guardas y los controles de incompatibilidades reales. No sustituirlo por la velocidad de otro evaluador.
 5. Cuando el flujo sea confiable, preparar la interfaz familiar; después abordar acceso web para otros usuarios y suscripciones.
 
 ## Fuera del trabajo inmediato

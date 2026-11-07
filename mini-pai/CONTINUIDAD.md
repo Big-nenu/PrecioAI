@@ -84,3 +84,16 @@ Evidencia privada: salidas/estructura-tablas-2026-11-07/ejecucion-02/. Los ensay
 `probar_modelos_mini_pai.py` compara secuencialmente Nemotron y Gemma con extracción de 78 conceptos y candidatos fijos de la muestra anterior de 20. Instrucciones en [PRUEBA-MODELOS.md](PRUEBA-MODELOS.md). El paquete privado preparado está en `datos_privados/prueba-modelos/`, excluido de Git; no contiene resultados nuevos de modelos. Se verificaron sus hashes y se prepararon dos controles negativos con candidatos reales incompatibles.
 
 La herramienta genera un Markdown distinto por modelo, detalles JSON y reportes parciales tras errores o interrupción, sin SQL ni cambio de .env. Las ocho pruebas nuevas del script usan respuestas simuladas; la comparación real la ejecutará el usuario y compartirá los .md. No afirmar que ya se midió Gemma o que ganó un modelo antes de esos reportes.
+
+## Pruebas reales completadas — 7 de noviembre de 2026
+
+Esta sección actualiza las pendientes históricas anteriores. Se revisaron los reportes compartidos por el usuario: Nemotron completó la extracción de 78 conceptos y 15 agrupadores en 53.397 s; Gemma falló en el padre de un registro. La etapa técnica fija tardó 376.071 s con Nemotron y 810.076 s con Gemma. Se mantiene Nemotron; propuestas que pasan guardas no equivalen a decisiones semánticamente correctas. Ver [resultados y límites](PRUEBA-MODELOS.md).
+
+Se ejecutaron las tres pruebas autorizadas: recuperación con EmbeddingGemma 270m y Qwen3-Embedding 0.6b contra 19,418 registros tipo 4, índices locales persistentes y comparación de D1/D3/Nemotron sobre los mismos 71 pares. [Reporte público completo](PRUEBA-RECUPERACION-DECISIONES.md).
+
+- EmbeddingGemma recuperó referencias útiles entre tres candidatos en 10/12 consultas etiquetadas; Qwen 6/12, o 7/12 con centrado. Son referencias exploratorias, no equivalencias confirmadas ni precisión general.
+- Índices en `datos_privados/indices/`, con construcción inicial de 309.70 y 233.44 s. Se reutilizaron 19,418 documentos por modelo sin embeddings nuevos del catálogo. Recuperación completa de 20 consultas con modelo cargado: 1.706 y 1.692 s, incluido ordenar los candidatos. No es tiempo de presupuesto completo.
+- D1/D3/Nemotron: 12.44/10.83/529.23 s para los mismos 71 pares, cero errores de API. D1 clasificó cuatro controles incompatibles como equivalentes. D3 no etiquetó ninguno de los diez negativos como incompatible. Nemotron acertó nueve etiquetas, pero trató una diferencia de espesor como compatible y también hizo suposiciones en cimbra. Ninguna respuesta se aplicó al selector.
+- Código mínimo: `indice_local.py`, prefijo oficial de Qwen y seis pruebas nuevas. Pasaron 151 pruebas automatizadas; se cotejó nuevamente el catálogo por SELECT y el SHA256 del Excel original.
+
+Evidencia privada completa y reporte por concepto: `salidas/tres-pruebas-2026-11-07/`. No subir esos archivos ni los índices a GitHub. El siguiente incremento propuesto es conectar la recuperación con índice al buscador existente, conservando Nemotron, las guardas y la revalidación SQL. Falta medir ese flujo integrado, ampliar referencias expertas y revisar las decisiones dudosas; no se generó otro Excel, ni se implementó MCP, memoria de decisiones o interfaz. PR #3 sin fusionar.
