@@ -78,3 +78,9 @@ La corrección definitiva de esta auditoría está en el exportador: impide cód
 La [nueva ruta --por-tabla](EXTRACCION-TABULAR.md) recuperó 78 conceptos, 15 agrupadores y 312 campos sin diferencias contra el Excel, en 39.467 s y tres llamadas incluido reintento. El presupuesto conserva SHA256. Pasaron 137 pruebas. La ruta antigua por bloques no se reemplazó; otros formatos requieren validación. Skill global y versionada sincronizadas; conversación Cline aún no probada.
 
 Evidencia privada: salidas/estructura-tablas-2026-11-07/ejecucion-02/. Los ensayos del directorio padre y ejecución 01 incluyen fallos, no usarlos como resultado final. El siguiente paso del presupuesto actual es búsqueda y selección usando el JSON cotejado; no se ha generado su Excel final ni probado otros modelos.
+
+## Prueba preparada para ejecutar por el usuario
+
+`probar_modelos_mini_pai.py` compara secuencialmente Nemotron y Gemma con extracción de 78 conceptos y candidatos fijos de la muestra anterior de 20. Instrucciones en [PRUEBA-MODELOS.md](PRUEBA-MODELOS.md). El paquete privado preparado está en `datos_privados/prueba-modelos/`, excluido de Git; no contiene resultados nuevos de modelos. Se verificaron sus hashes y se prepararon dos controles negativos con candidatos reales incompatibles.
+
+La herramienta genera un Markdown distinto por modelo, detalles JSON y reportes parciales tras errores o interrupción, sin SQL ni cambio de .env. Las ocho pruebas nuevas del script usan respuestas simuladas; la comparación real la ejecutará el usuario y compartirá los .md. No afirmar que ya se midió Gemma o que ganó un modelo antes de esos reportes.

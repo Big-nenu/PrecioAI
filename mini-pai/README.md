@@ -70,7 +70,7 @@ El Markdown distingue:
 | Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
 | Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
 
-Tras la auditoría pasaron **137 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+Tras la auditoría pasaron **145 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
 
 La [auditoría inicial](AUDITORIA-EXTRACCION.md) reprodujo fallos de clasificación y campos omitidos en la ruta por bloques. La nueva [extracción tabular](EXTRACCION-TABULAR.md), activada con `--por-tabla`, recuperó **78 conceptos, 15 agrupadores y 312 campos sin diferencias** respecto al Excel. Tardó **39.467 s** y tres llamadas con un reintento, solo interpretación, sin SQL ni exportación.
 
@@ -90,7 +90,9 @@ Pasadas, repeticiones y revalidaciones están en el [historial](historial/README
 
 ### Modelos
 
-**Nemotron sigue como principal.** Los ensayos exploratorios de Nemotron, D1 y TEV1 están en [EVALUADORES.md](EVALUADORES.md); no justifican sustituirlo. Las herramientas del [laboratorio](LABORATORIO.md) permiten comparar recuperación y decisiones por separado.
+**Nemotron sigue como principal.** Para ejecutar la comparación con Gemma y compartir los Markdown, usar [PRUEBA-MODELOS.md](PRUEBA-MODELOS.md). El script prueba extracción y candidatos fijos sin SQL ni cambios de configuración; la muestra privada está preparada en esta computadora. La comparación real la ejecuta el usuario.
+
+Los ensayos exploratorios de Nemotron, D1 y TEV1 están en [EVALUADORES.md](EVALUADORES.md); no justifican sustituirlo. Las herramientas del [laboratorio](LABORATORIO.md) permiten comparar recuperación y decisiones por separado.
 
 Falta evaluar la combinación propuesta de embeddings, D1/D3 y Nemotron sobre los mismos conceptos y candidatos, midiendo calidad, tiempo y memoria. Tener modelos descargados no equivale a tenerlos integrados o probados en este flujo. Cambiar modelos no sustituye corregir errores de integridad.
 

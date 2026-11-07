@@ -11,7 +11,7 @@ Documentación vigente: [PrecioAI](../README.md) y [Mini-PAI](../mini-pai/README
 | Decisiones | `mini_pai_seleccionar.py`, `mini_pai_revision.py`, `mini_pai_confirmar.py` | Comparación técnica, revisión, decisiones y comprobación SQL |
 | Entrega | `mini_pai_exportar.py` | Excel y Markdown con el formato existente |
 | Compartidos | `proveedor_ia.py`, `numeros_tecnicos.py` | Configuración y llamadas IA; comprobaciones numéricas |
-| Laboratorio | `laboratorio_coincidencias.py`, `comparar_evaluadores.py` | Experimentos separados; no sustituyen el modelo principal |
+| Laboratorio | `laboratorio_coincidencias.py`, `comparar_evaluadores.py`, `probar_modelos_mini_pai.py` | Experimentos separados; prueba reproducible y Markdown por modelo; no sustituyen el modelo principal |
 | Herramientas de análisis | `consultar_matriz.py`, `diagnosticar_matriz.py`, `calculo_importes.py` | Consultas y cálculos parciales; no constituyen un motor completo de precios unitarios |
 | Prototipo anterior | `leer_presupuesto.py` | Lector de hoja y columnas fijas; no es la entrada flexible |
 
@@ -19,7 +19,7 @@ Los módulos siguen en la raíz porque se importan entre sí y buscan la skill y
 
 ## Documentación y pruebas
 
-- `tests/`: 20 módulos de pruebas. Desde la raíz: `python -m unittest discover -v`. Algunos comparten ejemplos mediante imports del paquete `tests`.
+- `tests/`: 21 módulos de pruebas. Desde la raíz: `python -m unittest discover -v`. Algunos comparten ejemplos mediante imports del paquete `tests`.
 - `mini-pai/`: especificación vigente, guía, búsqueda y reportes de experimentos.
 - `docs/historial/` y `mini-pai/historial/`: copias completas de los README anteriores. Conservan los comandos y mediciones históricas.
 - `skills/analizar-presupuesto/`: skill y escenarios de evaluación. Preparar escenarios no significa haberlos ejecutado satisfactoriamente en Cline.
