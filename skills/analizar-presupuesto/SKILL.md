@@ -1,4 +1,45 @@
+---
+name: analizar-presupuesto
+description: >-
+  Procesa presupuestos Excel con Mini-PAI en PrecioAI: inspección completa,
+  interpretación flexible, búsqueda local SQL de ConstruBase, comparación técnica,
+  revisión del usuario y exportación Excel más Markdown. Usar cuando el usuario
+  pida analizar un presupuesto, usar Mini-PAI o comparar conceptos con ConstruBase.
+---
+
 # Skill: analizar-presupuesto
+
+## Arranque del agente anfitrión (Cline)
+
+Estas instrucciones son para el agente que dispone de terminal. Si recibes esta
+skill dentro de una llamada de clasificación de un script, devuelve solo el JSON
+del contrato de esa etapa; no simules ejecución de herramientas.
+
+1. Sitúate en la raíz real de PrecioAI abierta por el usuario. Comprueba con la
+   terminal que existen mini_pai_interpretar.py, mini_pai_claves.py,
+   mini_pai_seleccionar.py, mini_pai_revision.py, mini_pai_confirmar.py y
+   mini_pai_exportar.py. Lee mini-pai/GUIA-CLINE.md. Si falta un módulo, informa
+   exactamente cuál y detente; no sustituyas la ejecución por una narración.
+2. Inspecciona todas las hojas y filas no vacías mediante inspeccionar_excel de
+   mini_pai_interpretar. Registra nombres de hojas, alcance y evidencia del conteo.
+   No uses leer_presupuesto.py para estructuras variables: es un prototipo que
+   exige hoja Conceptos y columnas fijas. No confíes en conteos de respuestas previas.
+   Cuenta conceptos, encabezados y totales por separado; un resultado parcial debe
+   indicar su rango. Los 20 conceptos de la guía son una muestra, no un límite global.
+3. Ejecuta el flujo con los scripts locales y sus resultados guardados en una
+   carpeta nueva. Una búsqueda individual usaría palabras principales, no todos
+   los atributos unidos. [] solo demuestra que esa consulta no recuperó filas.
+4. ConstruBase es SQL Server local. Usa la configuración local existente y SELECT.
+   Este flujo no requiere Notion, Zendesk, Salesforce, Intercom, Asana, Maps,
+   BigQuery, Gmail, Drive ni autenticaciones de Composio. No solicites esas
+   conexiones como requisito. Si SQL falla, muestra el error real sin credenciales;
+   no inventes dependencias, enlaces de conexión ni toolkits inactivos.
+5. Distingue plan de ejecución: haber leído código no demuestra haberlo ejecutado.
+   Solo afirma conteos, coincidencias o verificaciones SQL si tienes salida real de
+   herramienta y archivo de resultados. No inventes IDs, decisiones ni cantidades.
+6. Si el usuario pide preguntas al final, acumula los casos pendientes. Eso no
+   autoriza responder por él. Registra elecciones solo tras su respuesta explícita.
+   «No exportes todavía» impide crear el Excel final, aunque puedas preparar opciones.
 
 ## Objetivo
 Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsquedas de conceptos técnicamente compatibles en ConstruBase. No asumir columnas, claves ni partidas fijas.

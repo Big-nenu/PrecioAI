@@ -104,3 +104,13 @@ Se pueden registrar respuestas por grupos, usando el último JSON resuelto como 
 - Reporte con sin candidatos, conservación manual, matrices elegidas y origen IA/usuario.
 - Cantidades con comas que permanecen como texto identificadas para probar su pegado.
 - Al copiar a Neodata, revisar también los conceptos sin matriz. La prueba nueva en Neodata la hace el usuario.
+
+
+## Si el chat pide conexiones ajenas o conserva un conteo incorrecto
+
+Abrir una conversación nueva en Cline después de actualizar la skill; un chat largo
+puede conservar planes y afirmaciones erróneas anteriores. Pedir primero inspección
+sin SQL ni exportación y exigir la salida real de la terminal. La skill ahora tiene
+metadatos de activación y un arranque que comprueba módulos, alcance y evidencias.
+Esto orienta al modelo, pero no garantiza que siempre obedezca. No conectar servicios
+ajenos para desbloquear Mini-PAI; revisar la ejecución si vuelve a solicitarlos.

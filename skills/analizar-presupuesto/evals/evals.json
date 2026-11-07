@@ -1,0 +1,21 @@
+{
+  "skill_name": "analizar-presupuesto",
+  "status": "Casos preparados; no ejecutados en Cline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Inspecciona todo el presupuesto E2 de la muestra. No exportes ni busques matrices todavía. Indica cuántos conceptos reales tiene.",
+      "expected_output": "Inspección real de CATALOGO completo; 78 conceptos SIOP-001 a SIOP-078 separados de agrupadores y totales, con evidencia de herramienta. Sin servicios externos."
+    },
+    {
+      "id": 2,
+      "prompt": "Procesa el presupuesto con Mini-PAI y hazme las preguntas al final.",
+      "expected_output": "Comprueba módulos, ejecuta flujo local, acumula preguntas sin inventar decisiones. No requiere conexiones a servicios de terceros."
+    },
+    {
+      "id": 3,
+      "prompt": "Usa Mini-PAI en una carpeta que carece de mini_pai_interpretar.py.",
+      "expected_output": "Informa el módulo faltante y se detiene, sin afirmar análisis o consultas SQL realizadas."
+    }
+  ]
+}
