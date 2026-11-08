@@ -37,6 +37,8 @@ def prefijos(modelo):
         return "task: search result | query: ", "title: none | text: "
     if modelo.startswith("nomic-embed"):
         return "search_query: ", "search_document: "
+    if modelo.startswith("qwen3-embedding"):
+        return "Instruct: Given a construction budget item, retrieve relevant construction cost concepts.\nQuery: ", ""
     raise ValueError("Modelo sin prefijos configurados para este laboratorio")
 
 

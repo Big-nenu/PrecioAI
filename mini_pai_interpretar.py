@@ -38,23 +38,27 @@ def esquema_interpretacion(inspeccion=None, filas_objetivo=None, contexto=()):
     return esquema
 
 
-def inspeccionar_excel(ruta):
+def inspeccionar_excel(ruta, *, formatos=False):
     """Devuelve celdas no vacías con coordenadas, sin inferir columnas."""
     from openpyxl import load_workbook
 
-    libro = load_workbook(ruta, read_only=True, data_only=True)
+    libro = load_workbook(ruta, read_only=not formatos, data_only=True)
     try:
         hojas = []
         for hoja in libro:
             filas = []
-            for numero, valores in enumerate(hoja.iter_rows(values_only=True), 1):
-                celdas = {}
-                for columna, valor in enumerate(valores, 1):
+            for numero, valores in enumerate(hoja.iter_rows(), 1):
+                celdas, estilos = {}, {}
+                for columna, celda in enumerate(valores, 1):
+                    valor = celda.value
                     if valor is not None and str(valor).strip():
                         from openpyxl.utils import get_column_letter
-                        celdas[f"{get_column_letter(columna)}{numero}"] = str(valor)
+                        ref = f"{get_column_letter(columna)}{numero}"
+                        celdas[ref] = str(valor)
+                        if formatos:
+                            estilos[ref] = dict(estilo=celda.style_id,negrita=bool(celda.font.bold))
                 if celdas:
-                    filas.append({"fila": numero, "celdas": celdas})
+                    filas.append({"fila": numero, "celdas": celdas, **({"formatos": estilos} if formatos else {})})
             hojas.append({"nombre": hoja.title, "filas": filas})
         return {"archivo": Path(ruta).name, "hojas": hojas}
     finally:
@@ -103,7 +107,8 @@ def interpretar(ruta, skill=None, *, hoja=None, fila_inicial=1, fila_final=None,
                 if registro["tipo"] == "partida":
                     contexto = [registro]
                 elif registro["tipo"] == "subpartida":
-                    contexto = [r for r in contexto if r["tipo"] == "partida"] + [registro]
+                    indice = next(i for i,r in enumerate(contexto) if r["fila"] == registro["padre"])
+                    contexto = contexto[:indice+1] + [registro]
             resultado["registros"].extend(datos["registros"])
             resultado["excluidas"].extend(datos["excluidas"])
             resultado["dudas"].extend(datos["dudas"])
@@ -148,15 +153,12 @@ omite el nombre global del contrato, devuelve Edificio como partida y ambos
 subgrupos como subpartidas. Los conceptos pertenecen a Edificio y al subgrupo
 vigente. No inviertas partida y subpartida. Este es un ejemplo semántico,
 no una regla sobre textos, claves o columnas concretos.
-Una partida agrupa conceptos o subpartidas. Una subpartida pertenece a una
-partida. Conserva el orden de las filas y cada ocurrencia, incluso claves repetidas.
+Una partida agrupa conceptos o subpartidas. Una subpartida pertenece a cualquier grupo anterior todavía vigente, incluida otra subpartida. Conserva el orden de las filas y cada ocurrencia, incluso claves repetidas.
 Usa padre para indicar el NÚMERO DE FILA del encabezado padre, no su clave.
-Una partida tiene padre null; una subpartida tiene como padre la fila de su
-partida; un concepto tiene como padre la fila de su subpartida vigente o,
-si no existe subpartida, la de su partida. Sin encabezados, padre es null.
-Al cambiar de partida se reinicia la subpartida. No inventes encabezados ausentes.
-Si hay más niveles
-que los representables o la jerarquía es dudosa, descríbelo en dudas.
+Una partida raíz tiene padre null; una subpartida tiene como padre la fila de su grupo inmediato.
+Un concepto pertenece al último grupo vigente. Hay tantos niveles como estén acreditados.
+Un grupo hermano cierra la rama anterior; no aplanes niveles. Sin encabezados, padre es null.
+Si la jerarquía es dudosa, descríbelo en dudas; no inventes encabezados.
 Cada registro debe tener SOLO: tipo (partida, subpartida, concepto u omitir), hoja,
 fila, padre, motivo y evidencia. motivo es null salvo al omitir una fila.
 No transcribas valores: Python los recupera de las celdas.
@@ -177,8 +179,8 @@ No busques matrices ni hagas consultas SQL."""},
          "son contexto validado de la misma hoja: puedes citarlos como padre, pero NO volver "
          "a emitirlos ni modificarlos. Las filas adicionales son anticipación: cita sus celdas "
          "solo si continúan un registro que empieza en filas_objetivo; no emitas registros "
-         "ni exclusiones para ellas. Una subpartida nueva reemplaza la anterior; una partida "
-         "nueva reinicia ambos niveles. Las filas de contexto y anticipación no requieren "
+         "ni exclusiones para ellas. Una subpartida puede anidarse bajo un grupo vigente o "
+         "cerrar una rama al abrir una hermana; una partida nueva inicia otra raíz. Las filas de contexto y anticipación no requieren "
          "clasificación en este bloque."},
         {"role": "user", "content": json.dumps(contenido, ensure_ascii=False)},
     ]
@@ -263,7 +265,7 @@ def materializar(propuesta, inspeccion, *, contexto=(), filas_objetivo=None):
             padre = anteriores.get((registro["hoja"], registro["padre"]))
             if padre is None or padre["tipo"] == "concepto":
                 raise ValueError(f"Padre inexistente o no es encabezado en fila {registro['fila']}")
-            if registro["tipo"] == "partida" or (registro["tipo"] == "subpartida" and padre["tipo"] != "partida"):
+            if registro["tipo"] == "partida" or padre["tipo"] not in ("partida", "subpartida"):
                 raise ValueError(f"Tipo incompatible con el padre en fila {registro['fila']}")
             if padre["tipo"] == "partida":
                 registro["partida"] = padre["clave"]
@@ -322,42 +324,77 @@ def validar(datos, inspeccion, *, contexto=()):
     validar_jerarquia([*contexto, *datos["registros"]])
 
 
+def contextos_por_concepto(registros):
+    """Deriva contexto solo del grupo común inmediato, respaldado por una variante real."""
+    validar_jerarquia(registros)
+    por_id={(r['hoja'],r['fila']):r for r in registros}
+    contextos={}
+    for r in registros:
+        prueba=r.get('descripcion_compartida')
+        if prueba is not None:
+            if (r['tipo']=='concepto' or not isinstance(r['descripcion'],str) or not r['descripcion'].strip() or not isinstance(prueba,dict) or set(prueba)!={'hijo','motivo'}
+                    or type(prueba['hijo']) is not int or not isinstance(prueba['motivo'],str) or not prueba['motivo'].strip()):
+                raise ValueError('Descripción compartida sin evidencia de relación')
+            hijo=por_id.get((r['hoja'],prueba['hijo']))
+            if hijo is None or hijo['tipo']!='concepto':raise ValueError('El hijo de descripción compartida no es un concepto real')
+            if hijo.get('padre')!=r['fila']:
+                raise ValueError('El hijo acreditado no pertenece directamente a la descripción compartida')
+    for r in registros:
+        if r['tipo']!='concepto':continue
+        comunes=[]
+        grupo=por_id.get((r['hoja'],r.get('padre')))
+        if grupo is not None and grupo.get('descripcion_compartida') is not None:
+            comunes.append(dict(hoja=grupo['hoja'],fila=grupo['fila'],descripcion=grupo['descripcion'],
+                evidencia=list(grupo.get('evidencia',{}).get('descripcion',[]))))
+        contextos[r['hoja'],r['fila']]=comunes
+    return contextos
+
+
+def descripciones_cliente(registro):
+    return [registro['descripcion'] or '']+[c['descripcion'] or '' for c in registro.get('contexto_descripcion',[])]
+
+
+def descripcion_tecnica(registro):
+    textos=descripciones_cliente(registro)
+    return '\n'.join(textos[1:]+textos[:1])
+
+
 def validar_jerarquia(registros):
     """Comprueba relaciones contra los encabezados extraídos, sin inferir columnas.
 
     No prueba que la IA haya encontrado todos los encabezados del documento.
     """
-    estado = {}
-    filas_padre = {}
+    estado, anteriores = {}, {}
     for registro in registros:
-        hoja = registro["hoja"]
-        anterior, partida, subpartida = estado.get(hoja, (0, None, None))
-        if registro["fila"] <= anterior:
-            raise ValueError("Registros duplicados o fuera de orden en la hoja")
-        tipo = registro["tipo"]
-        fila_partida, fila_subpartida = filas_padre.get(hoja, (None, None))
-        if tipo == "partida":
-            esperados = (None, None)
-            partida, subpartida = registro["clave"], None
-            padre_esperado = None
-            fila_partida, fila_subpartida = registro["fila"], None
-        elif tipo == "subpartida":
-            esperados = (partida, None)
-            subpartida = registro["clave"]
-            padre_esperado = fila_partida
-            fila_subpartida = registro["fila"]
-        else:
-            esperados = (partida, subpartida)
-            padre_esperado = fila_subpartida or fila_partida
-        if "padre" in registro and registro["padre"] != padre_esperado:
-            raise ValueError(f"Padre inconsistente en {hoja}, fila {registro['fila']}: "
-                             f"se esperaba fila {padre_esperado!r}")
-        if (registro["partida"], registro["subpartida"]) != esperados:
-            raise ValueError(f"Jerarquía inconsistente en {hoja}, fila {registro['fila']}: "
-                             f"según los encabezados anteriores se esperaba partida/subpartida "
-                             f"{esperados!r}; revisar también si clasificaste bien los encabezados")
-        estado[hoja] = (registro["fila"], partida, subpartida)
-        filas_padre[hoja] = (fila_partida, fila_subpartida)
+        hoja, fila, tipo = registro['hoja'], registro['fila'], registro['tipo']
+        if type(fila) is not int or fila <= anteriores.get(hoja,0):
+            raise ValueError('Registros duplicados o fuera de orden en la hoja')
+        activos = estado.get(hoja,[])
+        legado = None
+        if activos and tipo=='subpartida':
+            legado = activos[0]['fila']
+        elif activos and tipo=='concepto':
+            legado = activos[-1]['fila']
+        padre = registro.get('padre',legado)
+        if padre is not None and type(padre) is not int:
+            raise ValueError('Padre inconsistente: debe ser una fila entera')
+        if tipo=='partida':
+            esperados=(None,None)
+            if padre is not None:raise ValueError('Una partida requiere padre null')
+            activos=[registro]
+        elif tipo=='subpartida':
+            indice=next((i for i,r in enumerate(activos) if r['fila']==padre),None)
+            if indice is None:raise ValueError(f'Padre inconsistente en {hoja}, fila {fila}: grupo inexistente o cerrado')
+            esperados=(activos[0]['clave'],activos[indice]['clave'] if indice else None)
+            activos=activos[:indice+1]+[registro]
+        elif tipo=='concepto':
+            if padre != (activos[-1]['fila'] if activos else None):
+                raise ValueError(f'Padre inconsistente en {hoja}, fila {fila}: se esperaba el grupo vigente')
+            esperados=(activos[0]['clave'] if activos else None,activos[-1]['clave'] if len(activos)>1 else None)
+        else:raise ValueError('Tipo de registro inválido')
+        if (registro['partida'],registro['subpartida']) != esperados:
+            raise ValueError(f'Jerarquía inconsistente en {hoja}, fila {fila}: se esperaba {esperados!r}')
+        estado[hoja],anteriores[hoja]=activos,fila
 
 
 def main():
@@ -365,19 +402,34 @@ def main():
     parser.add_argument("archivo")
     parser.add_argument("--salida", help="Archivo JSON de salida")
     parser.add_argument("--hoja", help="Limitar la prueba a una hoja por su nombre")
+    parser.add_argument("--por-tabla", action="store_true", help="Ruta de una tabla estable: IA identifica cabeceras y grupos; Python recupera campos")
+    parser.add_argument("--revision-estructura", help="JSON revisado, ligado al hash del original; requiere --por-tabla")
     parser.add_argument("--fila-inicial", type=int, default=1)
     parser.add_argument("--fila-final", type=int)
     parser.add_argument("--tamano-bloque", type=int, default=5,
                         help="Máximo de filas no vacías nuevas por petición (por defecto 5)")
     args = parser.parse_args()
+    if args.revision_estructura and not args.por_tabla:
+        parser.error("--revision-estructura requiere --por-tabla")
+    if args.por_tabla and (args.hoja is not None or args.fila_inicial != 1 or args.fila_final is not None):
+        parser.error("--por-tabla procesa una tabla completa; no combinar con rangos o --hoja")
     if args.salida:
         origen, destino = Path(args.archivo), Path(args.salida)
+        if args.revision_estructura:
+            revision=Path(args.revision_estructura)
+            if (revision.resolve()==destino.resolve()
+                    or revision.exists() and destino.exists() and revision.samefile(destino)):
+                parser.error("La salida debe ser distinta de la revisión estructural")
         if (origen.resolve() == destino.resolve()
                 or origen.exists() and destino.exists() and origen.samefile(destino)):
             parser.error("La salida debe ser distinta del Excel original")
-    datos = interpretar(args.archivo, hoja=args.hoja,
-                        fila_inicial=args.fila_inicial, fila_final=args.fila_final,
-                        tamano_bloque=args.tamano_bloque)
+    if args.por_tabla:
+        from mini_pai_tabla import interpretar_tabla
+        datos = interpretar_tabla(args.archivo, **({"revision":args.revision_estructura} if args.revision_estructura else {}))
+    else:
+        datos = interpretar(args.archivo, hoja=args.hoja,
+                            fila_inicial=args.fila_inicial, fila_final=args.fila_final,
+                            tamano_bloque=args.tamano_bloque)
     texto = json.dumps(datos, ensure_ascii=False, indent=2)
     if args.salida:
         Path(args.salida).write_text(texto, encoding="utf-8")

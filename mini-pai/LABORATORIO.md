@@ -1,13 +1,15 @@
 # Laboratorio de recuperación y decisiones
 
 `laboratorio_coincidencias.py` compara el ranking existente de PrecioAI con
-EmbeddingGemma y Nomic y permite evaluar pares con TEV1. Es un experimento
+EmbeddingGemma, Qwen3-Embedding y Nomic y permite evaluar pares con TEV1. Es un experimento
 independiente: no está conectado automáticamente al intérprete, no elige
 matrices y no escribe en ConstruBase.
 
 Se adapta el enfoque de `tests/embed_lab.py` y los prefijos de StoneWave;
 no se importa su motor ni se accede a su memoria. La atribución MIT está en
 `references/stonewave-license.txt`.
+
+Pruebas separadas: [recuperación sobre catálogo completo, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). `indice_local.py` reutiliza vectores de catálogo y reanuda lotes pendientes. La [integración posterior con mini_pai_buscar.py --indice](INTEGRACION-INDICE.md) ya genera candidatos para el selector existente y un Excel de revisión; no convierte rankings en equivalencias ni sustituye Nemotron.
 
 ## Ejecutar
 

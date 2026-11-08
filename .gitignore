@@ -12,3 +12,9 @@ __pycache__/
 resultado.json
 salidas/
 datos_privados/
+
+# Presupuestos y referencias privadas en cualquier carpeta.
+*.xlsx
+*.xls
+*.xlsm
+~$*

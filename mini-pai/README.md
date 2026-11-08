@@ -1,150 +1,151 @@
-# Mini-PAI — Excel de presupuesto a Neodata
+# Mini-PAI
 
-## Objetivo
+Mini-PAI es el primer producto de [PrecioAI (PAI)](../README.md). Ahorra la captura y el acomodo manual de presupuestos: recibe un Excel de un cliente, identifica sus conceptos, busca matrices de ConstruBase y entrega un `.xlsx` para copiar y pegar manualmente en Neodata PU Win+, acompañado de un reporte `.md`.
 
-Primera herramienta independiente dentro del repositorio PrecioAI. Convertir presupuestos de construcción recibidos en Excel, con estructuras variables o desordenadas, a un Excel que pueda copiarse/importarse en Neodata PU Win+. Resolver primero esta necesidad práctica y reutilizar después las herramientas en PrecioAI.
+**Experiencia objetivo:** «Analiza este presupuesto» → procesamiento → preguntas sobre casos dudosos → elecciones del usuario → Excel y reporte. El usuario no debe conocer Python, diseñar consultas SQL, acomodar columnas ni corregir al asistente por chat. Este es el comportamiento que debe alcanzarse; el prototipo todavía necesita validación de extremo a extremo.
 
-**Alcance de esta etapa:** transformar catálogos de conceptos y conservar partidas, subpartidas, códigos, descripciones, unidades y cantidades. No generar todavía matrices nuevas ni construir la plataforma web.
+## Qué debe hacer
 
-## Flujo deseado (aún no implementado de extremo a extremo)
+1. **Inspeccionar el archivo completo.** Revisar todas las hojas y filas con datos, identificar el catálogo y declarar el alcance procesado. Separar conceptos, partidas, subpartidas, metadatos, notas y totales. Identificar explícitamente cualquier muestra o ejecución parcial.
+2. **Interpretar estructuras variables mediante IA y herramientas.** Identificar celdas de código, descripción, unidad y cantidad sin exigir nombres, posiciones o vocabularios propios de un cliente. Python recupera los valores originales desde esa evidencia; el modelo no debe reescribir cantidades ni reconstruir descripciones.
+3. **Conservar datos y jerarquía.** Mantener códigos, descripciones completas, unidades, cantidades y relaciones entre partidas y subpartidas. Rastrear cada registro hasta archivo, hoja, fila y celdas. Un agrupador no cuenta como concepto y un total no se convierte en cantidad.
+4. **Buscar matrices reales.** La IA identifica actividad principal y atributos técnicos explícitos y prepara búsquedas de palabras clave y variantes. No buscar la descripción completa como una cadena exacta. Reutilizar el buscador SQL de ConstruBase exclusivamente en lectura.
+5. **Presentar candidatos parecidos.** Mostrar hasta tres opciones recuperadas con código, descripción completa y unidad. El parecido ayuda a elegir; no certifica equivalencia técnica. El análisis técnico automático queda disponible como opción, fuera del recorrido predeterminado.
+6. **Registrar la elección del usuario.** Ofrecer **4: Conservar concepto original — sin matriz de ConstruBase**. Esperar respuestas reales, que pueden reunirse al final. Por defecto no seleccionar una matriz automáticamente. Si se pide análisis técnico, las propuestas automáticas siguen requiriendo evidencia y validaciones.
+7. **Verificar selecciones en SQL.** Recuperar nuevamente código real, descripción íntegra y unidad de cada matriz elegida. No inventar información de catálogo, resumirla ni modificar ConstruBase. Una unidad distinta no autoriza convertir cantidades automáticamente.
+8. **Entregar Excel y reporte.** Conservar jerarquía y formato comprobado. Distinguir matrices seleccionadas por IA o usuario, conservación manual, búsquedas sin candidatos y errores. Un fallo de búsqueda no demuestra ausencia de matrices.
 
-1. El usuario proporciona un Excel de presupuesto. No asumir columnas, encabezados ni jerarquías fijas.
-2. La IA identifica partidas, subpartidas y conceptos; extrae código, descripción, unidad y cantidad sin perder la relación con el archivo original. Las ambigüedades se reportan, no se inventan.
-3. Para cada concepto, identifica palabras clave y atributos técnicos y consulta ConstruBase **en modo lectura**. Una coincidencia de palabras no demuestra equivalencia técnica; comparar también unidad, alcance y condiciones.
-4. Si se encuentra una equivalencia técnicamente válida, utilizar el **Código** del concepto de ConstruBase y conservar en **Código auxiliar** la clave original del cliente. Mantener la descripción propia del concepto de ConstruBase y la descripción original en **Descripción auxiliar**.
-5. Si no se encuentra equivalencia, conservar los datos originales en los campos principales y auxiliares, señalando el caso en el reporte. No inventar códigos, descripciones ni coincidencias. Resolver o marcar conflictos cuando un mismo código principal corresponda a descripciones diferentes.
-6. Generar el Excel con la estructura de partidas/subpartidas y un reporte de conceptos encontrados, no encontrados y dudosos.
-7. Validar el resultado copiándolo/importándolo realmente en Neodata PU Win+.
+## Reglas de integridad del producto
 
-**Importante:** en Mini-PAI aún hay que decidir cómo confirmar coincidencias dudosas antes de reutilizar un concepto de ConstruBase. No asumir selección automática confiable.
+- Mantener intactos el presupuesto original y ConstruBase; guardar resultados en rutas nuevas.
+- Conservar unidos los campos de cada concepto: nunca asignar cantidades o importes de otro renglón por aparecer cerca en el documento o en un resumen.
+- Informar conteos reales y exclusiones con evidencia; no reutilizar cifras ni decisiones de conversaciones anteriores.
+- **Un código principal identifica una sola descripción completa en el catálogo entregado.** Si el mismo código aparece con descripciones distintas, señalar y resolver el conflicto antes de la entrega final. No renombrar códigos ni fusionar conceptos silenciosamente. Repetir código y descripción idénticos en distintas partidas no es por sí solo ese conflicto.
+- Si falta código del cliente y se conserva sin matriz, solicitarlo y registrar la respuesta separadamente del original.
+- No forzar equivalencias para aumentar las selecciones. Diferencias e información insuficiente requieren revisión.
+- No presentar un borrador o una ejecución parcial como presupuesto final. No exportar si el usuario lo ha prohibido.
 
-## Formato de salida de referencia
+Son condiciones de aceptación, no una afirmación de que todas estén verificadas hoy. La guarda del exportador final también rechaza códigos con descripciones distintas entre originales conservados y matrices seleccionadas; permite repetir código y descripción idénticos. Cobertura completa y comportamiento autónomo siguen pendientes de validación.
 
-El *Manual PUWIN+*, páginas 246 y 458, describe el uso de códigos auxiliares y el copiado desde Excel con las columnas **en este orden**:
+## Formato de salida
+
+**Se conserva el formato que el usuario ya probó al copiar y pegar en Neodata.** La hoja `Catálogo` contiene:
 
 ```text
-Partida | Código | Código auxiliar | Descripción auxiliar | Unidad | Cantidad
+Partida | Código | Código auxiliar | Descripción completa | Descripción auxiliar | Unidad | Cantidad | Tipo
 ```
 
-El Código auxiliar admite **hasta 20 caracteres** según el manual. El código principal identifica el concepto interno; el auxiliar permite conservar el código de la licitación o cliente sin duplicar conceptos prácticamente iguales. La descripción auxiliar conserva el texto del cliente.
-
-**Pendiente de validar:** comportamiento exacto al pegar/importar conceptos no existentes en el catálogo, manejo de descripciones completas y conflictos de códigos, y correspondencia de la estructura de partidas y subpartidas. No afirmar compatibilidad definitiva hasta probarlo en Neodata.
-
-## Etapas pequeñas
-
-| Etapa | Tarea | Estado |
+| Campo | Con matriz seleccionada y verificada | Sin matriz tras búsqueda válida vacía o elección de conservar |
 | --- | --- | --- |
-| 0 | Conectar y consultar ConstruBase | **Parcialmente comprobado**: consultas SQL y recuperación de matrices; falta integrar IA y evaluar equivalencias |
-| 1 | Interpretar un Excel desconocido y distinguir partidas, subpartidas y conceptos | **En validación parcial**: inspección sin columnas fijas y clasificación IA con evidencia; un bloque real validado, libro completo pendiente |
-| 2 | Buscar y evaluar conceptos equivalentes en ConstruBase | **Laboratorio inicial comprobado** con candidatos SQL reales y modelos locales; integración y equivalencias técnicas pendientes |
-| 3 | Generar Excel con códigos y descripciones auxiliares | **Pendiente** |
-| 4 | Generar reporte y comprobar importación en Neodata | **Pendiente** |
+| Partida | Ruta de la jerarquía original | Misma jerarquía |
+| Código | Código real de ConstruBase | Código original del cliente, o proporcionado explícitamente si faltaba |
+| Código auxiliar | Código original del cliente | Código original del cliente, cuando exista |
+| Descripción completa | Texto íntegro y original de ConstruBase | Texto íntegro y original del cliente |
+| Descripción auxiliar | Texto íntegro y original del cliente | Texto íntegro y original del cliente |
+| Unidad | Unidad validada de la matriz; conservar y señalar la del cliente si difiere | Unidad original del cliente |
+| Cantidad | Cantidad original del cliente, sin conversión automática | Cantidad original del cliente |
+| Tipo | Convención del exportador existente; conceptos tipo 4 | Misma convención |
 
-**Próxima tarea: etapa 1.** Definir una representación intermedia revisable de partidas, subpartidas y conceptos y probar la interpretación de distintos archivos, sin programar reglas rígidas para un solo Excel.
+Los nombres de las partidas y subpartidas se conservan en sus filas de agrupación. La cantidad no se sustituye por precio unitario, importe, subtotal o IVA. Las cantidades ambiguas se señalan, sin adivinarlas.
 
-## Arquitectura provisional
+Para el copiado indicado por el usuario son obligatorios **Partida, Código y Descripción completa**. Unidad, Cantidad y auxiliares también se conservan cuando existen. Un concepto final sin matriz no debe quedar con Código o Descripción completa vacíos. Esto no cambia el tratamiento de encabezados del formato probado.
 
-La evaluación inicial de recuperación con embeddings y de pares con TEV1 está
-documentada en [LABORATORIO.md](LABORATORIO.md). Reutiliza piezas de StoneWave
-como búsqueda independiente, sin incorporar su memoria. Los resultados son
-exploratorios: todavía no se confirman matrices automáticamente.
+El libro conserva además `Copiar auxiliares`, con `Partida | Código | Código auxiliar | Descripción auxiliar | Unidad | Cantidad`, y `Revisión`, con trazabilidad y advertencias. La referencia de seis columnas procede del Manual PUWIN+ citado en el historial; la de ocho, del catálogo de ejemplo y la prueba manual del usuario. No se intercambian códigos ni descripciones de cliente y catálogo.
 
-### Incremento de etapa 1 para revisión
+El Markdown distingue:
 
-`python mini_pai_interpretar.py entrada.xlsx --salida revision.json` reutiliza
-`proveedor_ia.py` y `skills/analizar-presupuesto/SKILL.md`. Inspecciona las hojas
-sin columnas fijas y solicita clasificación a la IA. Requiere configurar el
-proveedor como indica el README principal; el contenido del Excel se envía a ese
-proveedor. Usa únicamente archivos autorizados para ese destino.
+- **Con matriz:** código real, procedencia de la elección y justificación disponible.
+- **Conservados por elección:** el usuario decidió no utilizar ninguna matriz.
+- **Sin candidatos en la búsqueda realizada:** original conservado; no prueba ausencia en todo ConstruBase.
+- **Errores y pendientes:** no se ocultan como resultados resueltos o ausencia de coincidencias.
 
-La IA devuelve tipo, hoja, fila, **padre por fila**, evidencia por celda y motivo
-de exclusión. Python recupera clave, descripción, unidad y cantidad directamente
-del Excel, conservando espacios, saltos de línea y cantidades como texto. No se
-pide al modelo transcribirlos ni normalizarlos. Las descripciones pueden abarcar
-varias celdas. `partida` y `subpartida` conservan las claves de los padres cuando
-existen; `padre` identifica el encabezado incluso sin clave o con claves repetidas.
+## Generalización de la entrada
 
-Se solicita esquema JSON y temperatura cero mediante `response_format` (el
-proveedor debe soportarlo). Se validan celdas, orden, padres anteriores de la
-misma hoja y reinicio de subpartida al cambiar de partida. Las filas excluidas
-se conservan en `excluidas` con motivo. Toda fila no vacía del alcance debe
-quedar declarada o citada como continuación. Si falla la validación, se permite
-un único intento de corrección con el error; una segunda respuesta inválida
-se rechaza. Las respuestas truncadas y errores de conexión no se reintentan.
+La plantilla fija corresponde a la salida para Neodata. El lector identifica columnas desde evidencia del documento, con rótulos en varias filas o ejemplos de datos, y conserva árboles de agrupación mediante padres por hoja/fila, sin un límite de dos niveles. Los casos ambiguos pueden detenerse para revisión estructural; no se garantiza interpretar cualquier Excel automáticamente.
 
-Para una prueba parcial reproducible, sin fijar columnas:
+El [reporte de generalización](GENERALIZACION.md) distingue los cotejos correctos, revalidaciones e intentos rechazados. Estándar ya conserva 22 conceptos y tres agrupadores. La [revisión estructural asistida](REVISION-ESTRUCTURAL.md) permite materializar original siop (392 conceptos) y Obra civil (11), conservando sus datos y el contexto común. Son decisiones revisadas, no un éxito automático de Nemotron. No se publican reglas particulares para esos archivos ni se los declara resueltos por aceptar un JSON.
+
+## Estado real
+
+| Componente | Implementado | Límite actual |
+| --- | --- | --- |
+| Inspección | Lectura de hojas y celdas sin columnas fijas | Inspeccionar no equivale a identificar todos los conceptos |
+| Interpretación | Ruta tabular comprobada en dos originales; bloques conservados; evidencia y jerarquía | Ruta tabular limitada a una tabla estable; otros formatos y bloques pendientes |
+| Recuperación | Consultas propuestas por IA, SQL parametrizado y candidatos revisables | AND/LIKE y ranking limitado pueden dejar fuera matrices útiles |
+| Comparación | Nemotron, evidencia técnica, validaciones y verificación SQL | Casos dudosos requieren revisión; no garantiza equivalencia universal |
+| Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
+| Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
+
+En la revisión actual pasaron **196 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+
+La corrección de metadatos, clasificación por bloques y jerarquía sobre archivos originales se documenta en [ORIGINALES.md](ORIGINALES.md). Las pruebas funcionales conservan originales por elección del usuario y se distinguen de una aprobación técnica de matrices.
+
+La [auditoría inicial](AUDITORIA-EXTRACCION.md) reprodujo fallos de clasificación y campos omitidos en la ruta por bloques. La nueva [extracción tabular](EXTRACCION-TABULAR.md), activada con `--por-tabla`, recuperó **78 conceptos, 15 agrupadores y 312 campos sin diferencias** respecto al Excel. Tardó **39.467 s** y tres llamadas con un reintento, solo interpretación, sin SQL ni exportación.
+
+La IA identifica cabeceras y agrupadores; Python recupera los campos completos desde columnas identificadas para ese documento. No hay letras fijas ni vocabulario de un cliente. La ruta anterior permanece para no alterar otros formatos sin comprobarlos. El nuevo modo requiere una tabla estable, cabeceras de descripción/unidad/cantidad entre las primeras 20 filas no vacías y revisión en formatos nuevos. No está validado para continuaciones entre filas o cambios de columnas.
+
+La skill instalada de Cline se sincronizó con la versionada. Su conversación completa todavía no se ha probado; los resultados anteriores proceden de ejecución nativa de los módulos.
+
+### Mediciones anteriores
+
+| Prueba con Nemotron local | Tiempo medido | Límite |
+| --- | ---: | --- |
+| Tres conceptos con candidatos guardados | Aproximadamente 88 s | Excluye interpretación y búsqueda desde cero |
+| Primera muestra de veinte | 751.951 s, aproximadamente 12:32 | Incluye fallos; excluye espera por decisiones humanas |
+| Comparación posterior de veinte | 349.760 s solo comparación | 17 conceptos con candidatos; no es un nuevo total ni prueba controlada de aceleración |
+
+Pasadas, repeticiones y revalidaciones están en el [historial](historial/README-2026-11-06.md) y [CONTINUIDAD.md](CONTINUIDAD.md). Revalidar respuestas guardadas no cuenta como inferencia nueva; elecciones delegadas a Codex no cuentan como decisiones automáticas de Nemotron.
+
+### Modelos
+
+**Nemotron sigue como principal.** La [comparación real con Gemma](PRUEBA-MODELOS.md) ejecutada por el usuario favoreció a Nemotron en esta muestra: extracción completa frente a fallo, y menor tiempo técnico. Las propuestas todavía requieren validación semántica; no son equivalencias certificadas.
+
+Los ensayos exploratorios de Nemotron, D1 y TEV1 están en [EVALUADORES.md](EVALUADORES.md); no justifican sustituirlo. Las herramientas del [laboratorio](LABORATORIO.md) permiten comparar recuperación y decisiones por separado.
+
+Se ejecutaron [pruebas separadas de embeddings, índice persistente y D1/D3 frente a Nemotron](PRUEBA-RECUPERACION-DECISIONES.md). EmbeddingGemma 270m recuperó más referencias útiles que Qwen en la muestra de 20 conceptos contra 19,418 registros. La ruta [mini_pai_buscar.py --indice](BUSQUEDA.md) ya conecta ese índice al selector existente, conservando Nemotron y la revalidación SQL. Ver [prueba integrada y límites](INTEGRACION-INDICE.md). Las decisiones rápidas no sustituyen las guardas técnicas ni la revisión de dudas.
+
+La [corrección de acción principal](ACCION-PRINCIPAL.md) hizo que Nemotron rechazara por sí mismo construir un cimiento frente a demolerlo. Cuatro controles de sinónimos/formulaciones compatibles conservaron selección; los diez negativos no se seleccionaron. Se alineó el esquema con las guardas existentes de procedimiento y alcance. El Excel revisado de la muestra conserva una propuesta SQL y 19 pendientes tras retirar también una propuesta de alcance limitado. Persisten inconsistencias de etiquetas e inclusiones; no se certifica la evaluación general.
+
+## Desarrollo y uso actual
+
+El [comando único mini_pai.py](FLUJO.md) coordina las etapas y permite continuar una sesión con decisiones parciales o conservar todos los originales, sin repetir etapas terminadas. Guarda estado y hashes en la carpeta de sesión. Es una herramienta local por terminal; los límites del intérprete y del selector siguen vigentes.
+
+Para el catálogo tabular completo usar primero [la ruta --por-tabla](EXTRACCION-TABULAR.md). Los comandos por bloques de esta sección conservan el comportamiento anterior y no sustituyen la nueva comprobación.
+
+Los módulos siguen en la raíz: [mapa del código](../docs/ESTRUCTURA.md). La [skill versionada](../skills/analizar-presupuesto/SKILL.md) forma parte de las instrucciones y contratos; no es un servidor MCP ni garantiza obediencia del asistente.
+
+El coordinador omite la evaluación técnica por defecto; `--evaluar-tecnicamente` la activa al iniciar una sesión nueva. Desde la raíz, crear una carpeta nueva para cada ejecución y usar las etapas existentes:
 
 ```powershell
-$env:PRECIOAI_AI_PROVIDER = 'ollama'
-$env:PRECIOAI_AI_MODEL = 'nemotron-3.5-bolt:e4b'
-python mini_pai_interpretar.py entrada.xlsx --hoja Conceptos --fila-inicial 16 --fila-final 30 --tamano-bloque 5 --salida revision.json
+New-Item -ItemType Directory -Path salidas/ejecucion-001
+python mini_pai_interpretar.py "ruta/al/presupuesto.xlsx" --salida salidas/ejecucion-001/interpretacion.json
+python mini_pai_claves.py salidas/ejecucion-001/interpretacion.json --salida salidas/ejecucion-001/candidatos.json
+python mini_pai_revision.py salidas/ejecucion-001/candidatos.json --salida salidas/ejecucion-001/opciones.md
 ```
 
-`alcance.parcial` identifica estas pruebas. Un rango no trae contexto anterior a
-su fila inicial: debe incluir los encabezados necesarios. Dentro del alcance,
-se procesan bloques consecutivos de hasta 5 filas no vacías por defecto,
-ajustables con `--tamano-bloque`. Cada bloque hereda únicamente la partida y
-subpartida vigentes ya validadas de su hoja, sin volver a emitirlas. Al cambiar
-de hoja se borra ese contexto.
+Para la recuperación semántica, sustituir el comando `mini_pai_claves.py` por `mini_pai_buscar.py ... --indice ruta/al/indice.sqlite --salida ...`, usando la interpretación sin búsquedas previas. No ejecutar las dos rutas sobre la misma salida. La [guía de búsqueda](BUSQUEDA.md) explica creación y reutilización del índice.
 
-Se anticipan dos filas no vacías para completar descripciones que crucen un
-corte. Las filas usadas como continuación no se vuelven a procesar. El esquema
-JSON limita filas emitibles, número de registros y coordenadas citables a la entrada del
-bloque; la anticipación no puede aparecer como registro independiente en esa
-petición. `bloques` registra filas objetivo y continuaciones para revisión.
-Si un bloque falla tras su único reintento, se informa hoja/rango y se detiene
-el proceso; no se presenta el resto como completado ni se genera el JSON final.
-Todavía no hay guardado parcial ni reanudación. Continuaciones de más de dos
-filas después del corte requieren evaluación; no asumir cobertura semántica
-completa por el mero control de filas.
+Revisar alcance y salidas entre etapas. Después de recibir decisiones reales, usar `mini_pai_confirmar.py` según [GUIA-CLINE.md](GUIA-CLINE.md). Con el JSON resuelto:
 
-**Comprobado (2026-11-05):** con Nemotron local, las filas 16–25 de un presupuesto
-real devolvieron una partida, dos subpartidas y cinco conceptos con padres y
-evidencia correctos; dos filas de metadatos se excluyeron con motivo. Se verificó
-contra las celdas originales. El bloque con portada completa no concluyó dentro
-del límite de 120 segundos. El archivo y las respuestas privadas no se versionan.
+```powershell
+python mini_pai_exportar.py salidas/ejecucion-001/resuelto.json --final --salida salidas/ejecucion-001/presupuesto.xlsx
+python -m unittest discover -v
+```
 
-**Prueba de continuidad (2026-11-05):** las filas 16–30 del mismo presupuesto,
-en tres bloques de cinco filas con `nemotron-3.5-bolt:e4b`, produjeron una partida,
-tres subpartidas, nueve conceptos y dos exclusiones. Las tres peticiones
-concluyeron sin reintento de validación (aproximadamente 59, 65 y 60 segundos).
-Se comprobaron los padres, ausencia de duplicados y todos los valores contra
-las celdas originales; el SHA256 del archivo permaneció igual. La prueba con
-bloques de diez filas agotó el límite; cinco es el valor inicial conservador,
-no una garantía de tiempo de respuesta. La continuación multicelda en el corte
-se verificó con datos sintéticos; estos conceptos reales ocupan una fila cada uno.
+El exportador entrega también `presupuesto.md`. Existe un coordinador reanudable, pero **el uso autónomo sobre presupuestos diversos todavía requiere validar la extracción y las decisiones**. La guía de Cline sirve para desarrollo y pruebas, no es la interfaz final. Ver [FLUJO.md](FLUJO.md).
 
-**Comprobado con pruebas sintéticas:** columnas variables, jerarquías, padres sin
-clave, cantidades cero, descripciones multicelda, exclusiones, cobertura, rangos,
-rechazo de referencias inventadas y un único reintento de validación. Las pruebas
-de bloques cubren padres heredados sin clave, claves repetidas, cambio de partida,
-aislamiento entre hojas, continuación en el corte, rechazo de contexto reemitido
-y detención ante un bloque inválido.
-**Pendiente:** distintos presupuestos, portada completa, fórmulas sin caché,
-celdas combinadas y libros grandes. La cobertura solo comprueba que cada fila
-fue declarada o citada: la IA aún puede omitir un concepto mediante una exclusión
-incorrecta o seleccionar celdas/tipos equivocados. Revisar también `excluidas`.
-El contrato actual admite dos niveles de agrupación; los niveles adicionales
-deben reportarse como duda. Sigue pendiente validar el presupuesto completo y
-diversos formatos con este procesamiento por bloques.
-Todavía no hay agente con llamadas autónomas a herramientas ni exportación.
+Más detalle: [búsqueda SQL](BUSQUEDA.md), [guía de Cline](GUIA-CLINE.md), [continuidad y procedencia](CONTINUIDAD.md).
 
-Se contempla una **skill** especializada (instrucciones para la IA) y herramientas concretas para inspeccionar Excel, consultar ConstruBase y generar el archivo de salida. La carpeta `references/` podría guardar reglas y documentación de Neodata; `scripts/` contendría funciones ejecutables. **Esta estructura aún es una propuesta, no está implementada.** Se busca mantener el sistema utilizable con distintos modelos de IA, sin depender de uno específico.
+## Próximo trabajo, por orden
 
-El código existente en la raíz de PrecioAI permanece donde está por ahora. No duplicarlo ni moverlo antes de determinar qué puede reutilizar Mini-PAI.
+1. Presentar las dudas estructurales y recoger sus respuestas de forma sencilla, usando el contrato de revisión ya implementado y cotejos independientes. Ver [GENERALIZACION.md](GENERALIZACION.md). No adaptar instrucciones por archivo ni dar por comercializable el lector.
+2. Comprobar la selección de ruta de lectura y nuevos formatos; después exponer el coordinador mediante un MCP mínimo, sin duplicar sus módulos ni depender de Cline.
+3. Mantener los controles de integridad y resolver las inconsistencias técnicas conocidas del selector antes de confiar en equivalencias automáticas generales. Conservar originales prueba el flujo, no certifica matrices.
+4. Ampliar las referencias expertas y comprobar nuevas entregas y su pegado, conservando el modelo y las guardas actuales.
+5. Cuando el flujo sea confiable, preparar la interfaz familiar; después abordar acceso web para otros usuarios y suscripciones.
 
-## Fuentes y ejemplos
+## Fuera del trabajo inmediato
 
-- `Manual PUWIN+.pdf`, especialmente páginas 246 y 456–458 (archivo de referencia compartido en el proyecto, no necesariamente versionado en Git).
-- `CATÁLOGO DE CONCEPTOS PARA ANALISIS DE MAESTRO.xls` (ejemplo del curso avanzado).
-- `pepe-sucio.xlsx`, `pepe-limpio.xlsx` y `presupuesto_1.xlsx` (ejemplos de entrada/salida compartidos; no asumir que están en el repositorio).
-- ConstruBase: catálogo y matrices de referencia, **sin modificar la base**.
+No controlar Neodata ni automatizar su importación. No modificar ConstruBase, construir matrices nuevas, procesar PDF, implementar cobros ni desarrollar PAI completo o infraestructura web ahora. Esas ampliaciones requieren definición y pruebas propias.
 
-## Reglas de trabajo
-
-- Distinguir **comprobado**, **pendiente** e **hipótesis**.
-- Preservar el archivo original y la trazabilidad de cada concepto.
-- No crear códigos ni coincidencias ficticias.
-- Implementar una etapa pequeña a la vez; reutilizar el código existente y evitar dependencias innecesarias.
-- No subir presupuestos privados, bases de datos ni credenciales al repositorio.
-- Antes de comercializar una solución que dependa de ConstruBase o Neodata, verificar los derechos y condiciones de uso correspondientes.
+Los cambios continúan en el [PR #3](https://github.com/Big-nenu/PrecioAI/pull/3), para revisión y sin fusión automática.
