@@ -60,16 +60,25 @@ del contrato de esa etapa; no simules ejecución de herramientas.
 ## Objetivo
 Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsquedas de conceptos técnicamente compatibles en ConstruBase. No asumir columnas, claves ni partidas fijas.
 
+## Prioridad actual de Mini-PAI
+
+Identificar partidas, subpartidas y conceptos; recuperar candidatos parecidos y
+presentar hasta tres para elección del usuario más conservar el original. Usar
+`mini_pai.py` sin `--evaluar-tecnicamente` por defecto: no exigir la comparación
+técnica ni aprobar matrices solo por parecido. Las reglas técnicas de abajo se
+aplican cuando se solicita explícitamente esa etapa opcional. Mantener la
+verificación SQL, las unidades, los auxiliares y el formato de salida.
+
 ## Procedimiento del agente
 1. Inspeccionar el documento con las herramientas disponibles y detectar hojas, tablas, encabezados y estructura real.
 2. Identificar descripciones, unidades y cantidades. Claves y partidas son opcionales; si faltan, dejar valores nulos, nunca inventarlos.
 3. Mantener trazabilidad por archivo, hoja/página y fila o región. Conservar cada renglón aunque se repita una clave.
 4. Señalar campos dudosos para revisión humana, sin detener los registros claros.
 5. Para cada concepto, extraer características técnicas y buscar candidatos reales mediante herramientas SQL de solo lectura.
-6. Comparar alcance, material, método, dimensiones, espesor, resistencia, unidad y
+6. Solo si se solicita evaluación técnica, comparar alcance, material, método, dimensiones, espesor, resistencia, unidad y
    condiciones de hasta cinco candidatos recuperados. Separar compatibles,
    incompatibles e insuficientes; no rellenar ni fabricar coincidencias.
-7. En la selección inteligente de Mini-PAI, elegir mediante IA solo equivalencias
+7. Si se solicita selección inteligente de Mini-PAI, elegir mediante IA solo equivalencias
    técnicamente justificadas con evidencia y verificación SQL. Reservar la revisión
    humana para diferencias, dudas o información insuficiente. Nunca modificar ConstruBase.
 
@@ -142,8 +151,9 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   materiales, certificaciones, costos o recursos que no aparecen en los textos.
 
 ## Revisión humana y entrega con Mini-PAI
-- Para usar Mini-PAI desde Cline, ejecutar interpretación, búsqueda y comparación
-  existentes; después generar las opciones con `mini_pai_revision.py`.
+- Desde cualquier agente, ejecutar interpretación y búsqueda existentes; generar
+  opciones directamente desde candidatos con `mini_pai_revision.py`. La comparación
+  técnica es opcional; no ejecutarla como requisito del recorrido actual.
 - Si hay una selección IA válida, conservarla. Para cada caso dudoso mostrar al
   usuario hasta tres candidatos del reporte: código, descripción completa, unidad
   y motivo técnico. Se excluyen candidatos declarados incompatibles; usar el orden

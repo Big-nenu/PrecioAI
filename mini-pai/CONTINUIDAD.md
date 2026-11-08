@@ -1,5 +1,18 @@
 # Continuidad de Mini-PAI — 6 de noviembre de 2026
 
+## Prioridad actual: recuperar y elegir, sin evaluación técnica obligatoria
+
+El coordinador omite la etapa de evaluación por defecto: interpretación, candidatos,
+preguntas y decisiones reales, revalidación SQL y Excel/Markdown. Presenta hasta tres
+candidatos por recuperación más conservar el original; parecido no significa
+aprobación. `--evaluar-tecnicamente` conserva el recorrido anterior como opción fijada
+al iniciar. Las sesiones de código anterior requieren esa versión o una carpeta nueva.
+
+Pasaron 196 pruebas automatizadas, incluidas pausa/reanudación sin evaluación,
+elección de matriz con verificación SQL simulada y conservación de auxiliares,
+búsqueda vacía y recorrido técnico opcional. No se midieron nuevos tiempos reales
+ni calidad de candidatos en esta ejecución. Formato Excel, lector y SQL sin cambios.
+
 ## Punto de partida
 
 - Repositorio: Big-nenu/PrecioAI. [PR #3](https://github.com/Big-nenu/PrecioAI/pull/3), rama `mini-pai-busqueda-revisable`, abierto y sin fusionar.

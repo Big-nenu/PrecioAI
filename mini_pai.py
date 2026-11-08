@@ -112,7 +112,7 @@ def continuar(args, sesion):
         verificar(estado, sesion)
         if args.archivo and str(Path(args.archivo).resolve()) != estado['entrada']:
             raise ValueError('La sesión corresponde a otro Excel')
-        for campo in ('indice', 'env', 'hoja', 'fila_inicial', 'fila_final', 'por_tabla', 'limite_conceptos', 'revision_estructura'):
+        for campo in ('indice', 'env', 'hoja', 'fila_inicial', 'fila_final', 'por_tabla', 'limite_conceptos', 'revision_estructura', 'evaluar_tecnicamente'):
             valor = getattr(args, campo, None)
             if valor is not None:
                 if campo in ('indice', 'env', 'revision_estructura'):
@@ -127,7 +127,8 @@ def continuar(args, sesion):
         parametros = dict(indice=str(Path(args.indice).resolve()),
             env=str(Path(args.env).resolve()) if args.env else str(ROOT / '.env'),
             hoja=args.hoja, fila_inicial=args.fila_inicial or 1, fila_final=args.fila_final,
-            por_tabla=bool(args.por_tabla),limite_conceptos=getattr(args,'limite_conceptos',None))
+            por_tabla=bool(args.por_tabla),limite_conceptos=getattr(args,'limite_conceptos',None),
+            evaluar_tecnicamente=bool(getattr(args,'evaluar_tecnicamente',None)))
         if parametros['por_tabla'] and (args.hoja or args.fila_inicial is not None or args.fila_final is not None):
             raise ValueError('--por-tabla no admite hoja ni rangos')
         revision=getattr(args,'revision_estructura',None)
@@ -174,7 +175,7 @@ def continuar(args, sesion):
         with closing(conectar_sql(parametros['env'])) as conexion:
             return seleccionar(candidatos, conexion)
 
-    evaluacion = etapa('evaluacion', evaluar)
+    evaluacion = etapa('evaluacion', evaluar) if parametros.get('evaluar_tecnicamente') else candidatos
     datos = (json.loads((sesion / estado['resoluciones'][-1]['resultado']).read_text(encoding='utf-8'))
              if estado['resoluciones'] else evaluacion)
     decisiones = None
@@ -254,6 +255,8 @@ def main():
     parser.add_argument('--indice')
     parser.add_argument('--env')
     parser.add_argument('--por-tabla', action='store_true', default=None)
+    parser.add_argument('--evaluar-tecnicamente', action='store_true', default=None,
+                        help='Activar comparación técnica IA; por defecto solo recuperar candidatos para elección del usuario')
     parser.add_argument('--revision-estructura',help='JSON de revisión estructural para --por-tabla, sin cambiar originales')
     parser.add_argument('--hoja')
     parser.add_argument('--fila-inicial', type=int)

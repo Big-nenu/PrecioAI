@@ -1,6 +1,6 @@
 # Un comando para iniciar y continuar Mini-PAI
 
-`mini_pai.py` coordina los módulos existentes: interpretación, recuperación con índice, comparación Nemotron, preguntas, decisiones, revalidación SQL y Excel más Markdown. No depende de Cline, no instala un MCP y no cambia el formato de salida. Sigue siendo una herramienta local por terminal, previa a la interfaz familiar.
+`mini_pai.py` coordina los módulos existentes: interpretación, recuperación con índice, preguntas, decisiones, revalidación SQL y Excel más Markdown. No depende de Cline, no instala un MCP y no cambia el formato de salida. Sigue siendo una herramienta local por terminal, previa a la interfaz familiar.
 
 ## Iniciar
 
@@ -12,7 +12,7 @@ El índice usa NumPy de `requirements-laboratorio.txt`, que ya incluye las depen
 python mini_pai.py "ruta/presupuesto.xlsx" --sesion salidas/ejecucion-001 --indice datos_privados/indices/catalogo-embeddinggemma.sqlite --por-tabla
 ```
 
-Usar la ruta real del índice ya construido para reutilizarlo. Una ruta nueva crea otro índice; una identidad incompatible exige otra ruta. La conexión SQL permanece en lectura. La interpretación y evaluación usan el proveedor configurado; este comando no cambia modelos ni `.env`.
+Usar la ruta real del índice ya construido para reutilizarlo. Una ruta nueva crea otro índice; una identidad incompatible exige otra ruta. La conexión SQL permanece en lectura. La interpretación usa el proveedor configurado; la comparación técnica solo se ejecuta al añadir `--evaluar-tecnicamente` al iniciar. Por defecto se presentan candidatos para elección del usuario, sin aprobación automática por parecido; este comando no cambia modelos ni `.env`.
 
 `--por-tabla` corresponde a la [ruta tabular](EXTRACCION-TABULAR.md) para una tabla estable. Sin ese indicador se utiliza el intérprete por bloques existente. Este admite `--hoja`, `--fila-inicial` y `--fila-final` para pruebas parciales; no combinarlos con `--por-tabla`. Si el intérprete informa un error o solicita revisión estructural, el flujo se detiene. El registro de decisiones de matrices no cambia el árbol. Para aplicar una revisión estructural explícita al iniciar, usar `--por-tabla --revision-estructura revision.json`, con el [contrato de revisión](REVISION-ESTRUCTURAL.md). Su hash se protege al reanudar; no se corrigen estructuras silenciosamente. El coordinador no añade una validación semántica de la estructura: una clasificación errónea que pase las guardas existentes todavía requiere revisión. No se supone que todos los formatos estén resueltos.
 
@@ -22,7 +22,7 @@ La carpeta debe ser nueva o vacía. El programa conserva el hash del Excel, los 
 
 ## Preguntas y decisiones
 
-Si faltan decisiones, termina con estado `esperando_decisiones` e indica la ruta de `preguntas-000.md`. Incluye hasta tres alternativas admisibles por concepto y conservar el original. Los incompatibles se excluyen; puede haber menos opciones. Las propuestas automáticas y sus limitaciones quedan registradas en `evaluacion.json`.
+Si faltan decisiones, termina con estado `esperando_decisiones` e indica la ruta de `preguntas-000.md`. Incluye hasta tres candidatos en orden de recuperación y la opción 4 de conservar el original. No se presentan como equivalencias aprobadas. El flujo no exige comparar técnicamente cada candidato antes de preguntar. Con `--evaluar-tecnicamente`, se conserva la etapa anterior: excluye dictámenes incompatibles y guarda propuestas/evidencia en `evaluacion.json`. El modo queda fijado al iniciar la sesión.
 
 Para ver otra vez el estado, sin repetir interpretación, SQL de recuperación ni evaluación:
 
@@ -59,7 +59,7 @@ Cuando no quedan pendientes, entrega `presupuesto.xlsx` y `presupuesto.md`. Ante
 ## Qué conserva y qué no repite
 
 - `sesion.json`: estado, parámetros, hashes y tiempos de cada etapa terminada.
-- `interpretacion.json`, `candidatos.json`, `evaluacion.json`: resultados de los módulos existentes.
+- `interpretacion.json`, `candidatos.json`: resultados de interpretación y búsqueda. `evaluacion.json` solo existe si se solicitó `--evaluar-tecnicamente`.
 - `decisiones-NNN.json`, `resolucion-NNN.json`: elecciones y resultados sucesivos, sin sobrescribir los anteriores.
 - `preguntas-NNN.md`: preguntas correspondientes a cada resolución.
 - `presupuesto.xlsx` y `presupuesto.md`: entrega final, con las validaciones existentes.
@@ -78,7 +78,7 @@ La prioridad sigue siendo facilitar las preguntas y confirmaciones de estructura
 
 Las inconsistencias técnicas conocidas de Nemotron siguen requiriendo revisión; un coordinador no convierte una propuesta incorrecta en equivalente. Ver [controles de acción principal](ACCION-PRINCIPAL.md).
 
-## Comprobación real del coordinador — 7 de noviembre de 2026
+## Comprobación histórica con evaluación técnica — 7 de noviembre de 2026
 
 La prueba positiva usó un fixture controlado de los primeros veinte conceptos del E2 y sus cuatro agrupadores, copiados con celdas y valores originales, sin portada/metadato global. Antes de buscar, se cotejaron los 80 campos originales y la jerarquía contra la referencia. Hubo inferencia nueva y SQL reales; no se reutilizó una interpretación anterior para esta prueba.
 

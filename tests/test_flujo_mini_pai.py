@@ -63,7 +63,8 @@ class FlujoMiniPaiTests(unittest.TestCase):
         resultado=flujo.ejecutar(self.args(conservar_originales=True,revisor='Usuario de prueba'))
         self.assertEqual(resultado['estado'],'terminado')
         self.assertEqual(self.sql.call_count,llamadas_sql)
-        for etapa in (self.interpretar,self.buscar,self.evaluar):self.assertEqual(etapa.call_count,1)
+        for etapa in (self.interpretar,self.buscar):self.assertEqual(etapa.call_count,1)
+        self.evaluar.assert_not_called()
         excel=self.sesion/'presupuesto.xlsx';digest=flujo.sha(excel)
         flujo.ejecutar(self.args())
         self.assertEqual(flujo.sha(excel),digest)
@@ -143,7 +144,8 @@ class FlujoMiniPaiTests(unittest.TestCase):
         seleccionados=confirmaciones.confirmar(datos,ejemplo.decisiones(),ejemplo.conexion(datos))
         self.interpretar.return_value=datos;self.buscar.return_value=datos;self.evaluar.return_value=seleccionados
         with patch.object(flujo,'consultar_candidato',return_value={'Codigo':'CAMBIADO'}):
-            with self.assertRaisesRegex(ValueError,'cambió en SQL'):self.iniciar()
+            with self.assertRaisesRegex(ValueError,'cambió en SQL'):
+                flujo.ejecutar(self.args(archivo=str(self.original),indice=str(self.raiz/'indice.sqlite'),evaluar_tecnicamente=True))
         self.assertFalse((self.sesion/'presupuesto.xlsx').exists())
         catalogo=seleccionados['busquedas_construbase'][0]['seleccion']['catalogo']
         with patch.object(flujo,'consultar_candidato',return_value=catalogo):
@@ -166,3 +168,60 @@ class FlujoMiniPaiTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'requiere --por-tabla'):
             flujo.ejecutar(self.args(archivo=str(self.original),indice=str(self.raiz/'indice.sqlite'),revision_estructura=str(archivo)))
         self.interpretar.assert_not_called()
+
+    def test_por_defecto_muestra_tres_opciones_sin_evaluar_y_protege_el_modo(self):
+        for b in self.candidatos['busquedas_construbase']:
+            base=b['candidatos'][0]
+            b['candidatos']=[dict(base,IdCodigo=n,Codigo=f'REAL-{n}') for n in range(10,15)]
+        estado=self.iniciar()
+        self.assertFalse(estado['parametros']['evaluar_tecnicamente'])
+        self.assertNotIn('evaluacion',estado['etapas'])
+        self.assertFalse((self.sesion/'evaluacion.json').exists())
+        self.evaluar.assert_not_called()
+        preguntas=(self.sesion/estado['preguntas']).read_text(encoding='utf-8')
+        self.assertIn('REAL-10',preguntas)
+        self.assertIn('REAL-12',preguntas)
+        self.assertNotIn('REAL-13',preguntas)
+        self.assertIn('Conservar',preguntas)
+        self.assertFalse((self.sesion/'presupuesto.xlsx').exists())
+        with self.assertRaisesRegex(ValueError,'No cambiar parámetros'):
+            flujo.ejecutar(self.args(evaluar_tecnicamente=True))
+
+    def test_seleccion_humana_sin_evaluacion_revalida_sql_y_conserva_auxiliares(self):
+        self.iniciar()
+        decisiones=[dict(hoja='Obra',fila=3,IdCodigo=10,revisor='Usuario de prueba',motivo='Matriz elegida'),
+                    dict(hoja='Obra',fila=4,IdCodigo=None,revisor='Usuario de prueba',motivo='Conservar original')]
+        archivo=self.raiz/'decisiones.json';archivo.write_text(json.dumps(decisiones),encoding='utf-8')
+        candidato=self.candidatos['busquedas_construbase'][0]['candidatos'][0]
+        catalogo={k:candidato[k] for k in confirmaciones.CAMPOS_SQL}
+        with patch.object(confirmaciones,'consultar_candidato',return_value=catalogo) as confirmar_sql, \
+                patch.object(flujo,'consultar_candidato',return_value=catalogo) as exportar_sql:
+            estado=flujo.ejecutar(self.args(decisiones=str(archivo)))
+        self.assertEqual(estado['estado'],'terminado')
+        confirmar_sql.assert_called_once();exportar_sql.assert_called_once()
+        self.evaluar.assert_not_called()
+        libro=load_workbook(self.sesion/'presupuesto.xlsx',read_only=True)
+        try:
+            hoja=libro['Catálogo']
+            self.assertEqual(hoja['B3'].value,'REAL')
+            self.assertEqual(hoja['C3'].value,self.datos['registros'][1]['clave'])
+            self.assertEqual(hoja['D3'].value,catalogo['DescripcionLarga'])
+            self.assertEqual(hoja['E3'].value,self.datos['registros'][1]['descripcion'])
+            self.assertEqual(hoja.max_column,8)
+        finally:libro.close()
+
+    def test_busqueda_vacia_exporta_originales_sin_evaluar(self):
+        for b in self.candidatos['busquedas_construbase']:
+            b.update(candidatos=[],estado='sin_candidatos_en_busqueda')
+        estado=self.iniciar()
+        self.assertEqual(estado['estado'],'terminado')
+        self.evaluar.assert_not_called()
+        self.assertNotIn('evaluacion',estado['etapas'])
+        self.assertIn('Sin candidatos encontrados (2)',(self.sesion/'presupuesto.md').read_text(encoding='utf-8'))
+        libro=load_workbook(self.sesion/'presupuesto.xlsx',read_only=True)
+        try:
+            for fila,r in zip((3,4),[r for r in self.datos['registros'] if r['tipo']=='concepto']):
+                self.assertEqual(libro['Catálogo'].cell(fila,2).value,r['clave'])
+                self.assertEqual(libro['Catálogo'].cell(fila,4).value,r['descripcion'])
+                self.assertEqual(libro['Catálogo'].cell(fila,5).value,r['descripcion'])
+        finally:libro.close()

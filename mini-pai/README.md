@@ -10,8 +10,8 @@ Mini-PAI es el primer producto de [PrecioAI (PAI)](../README.md). Ahorra la capt
 2. **Interpretar estructuras variables mediante IA y herramientas.** Identificar celdas de código, descripción, unidad y cantidad sin exigir nombres, posiciones o vocabularios propios de un cliente. Python recupera los valores originales desde esa evidencia; el modelo no debe reescribir cantidades ni reconstruir descripciones.
 3. **Conservar datos y jerarquía.** Mantener códigos, descripciones completas, unidades, cantidades y relaciones entre partidas y subpartidas. Rastrear cada registro hasta archivo, hoja, fila y celdas. Un agrupador no cuenta como concepto y un total no se convierte en cantidad.
 4. **Buscar matrices reales.** La IA identifica actividad principal y atributos técnicos explícitos y prepara búsquedas de palabras clave y variantes. No buscar la descripción completa como una cadena exacta. Reutilizar el buscador SQL de ConstruBase exclusivamente en lectura.
-5. **Comparar técnicamente.** Evaluar materiales, procedimientos, dimensiones, espesores, resistencias, alcances y unidades. Distinguir redacción equivalente, información no mencionada y diferencias reales. Similitud textual, misma unidad o confianza declarada no bastan para aprobar.
-6. **Resolver lo justificable y preguntar las dudas.** Una equivalencia automática necesita motivo, evidencia y validaciones. En pendientes, presentar hasta tres candidatos pertinentes con código, descripción completa, unidad y diferencias, más la opción **4: Conservar concepto original — sin matriz de ConstruBase**. Esperar la elección real; las preguntas pueden reunirse al final.
+5. **Presentar candidatos parecidos.** Mostrar hasta tres opciones recuperadas con código, descripción completa y unidad. El parecido ayuda a elegir; no certifica equivalencia técnica. El análisis técnico automático queda disponible como opción, fuera del recorrido predeterminado.
+6. **Registrar la elección del usuario.** Ofrecer **4: Conservar concepto original — sin matriz de ConstruBase**. Esperar respuestas reales, que pueden reunirse al final. Por defecto no seleccionar una matriz automáticamente. Si se pide análisis técnico, las propuestas automáticas siguen requiriendo evidencia y validaciones.
 7. **Verificar selecciones en SQL.** Recuperar nuevamente código real, descripción íntegra y unidad de cada matriz elegida. No inventar información de catálogo, resumirla ni modificar ConstruBase. Una unidad distinta no autoriza convertir cantidades automáticamente.
 8. **Entregar Excel y reporte.** Conservar jerarquía y formato comprobado. Distinguir matrices seleccionadas por IA o usuario, conservación manual, búsquedas sin candidatos y errores. Un fallo de búsqueda no demuestra ausencia de matrices.
 
@@ -76,7 +76,7 @@ El [reporte de generalización](GENERALIZACION.md) distingue los cotejos correct
 | Revisión | Hasta tres candidatos admisibles y conservar original; decisiones auditadas | No existe todavía interfaz sencilla para el ingeniero |
 | Entrega | Excel y Markdown con selecciones IA/humanas y originales | Copiado probado; conflictos de descripción protegidos; flujo autónomo pendiente |
 
-En la revisión actual pasaron **193 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
+En la revisión actual pasaron **196 pruebas automatizadas** mediante `python -m unittest discover -q`, sin IA ni SQL en vivo. No sustituyen las pruebas reales de extracción y decisiones.
 
 La corrección de metadatos, clasificación por bloques y jerarquía sobre archivos originales se documenta en [ORIGINALES.md](ORIGINALES.md). Las pruebas funcionales conservan originales por elección del usuario y se distinguen de una aprobación técnica de matrices.
 
@@ -114,14 +114,13 @@ Para el catálogo tabular completo usar primero [la ruta --por-tabla](EXTRACCION
 
 Los módulos siguen en la raíz: [mapa del código](../docs/ESTRUCTURA.md). La [skill versionada](../skills/analizar-presupuesto/SKILL.md) forma parte de las instrucciones y contratos; no es un servidor MCP ni garantiza obediencia del asistente.
 
-Desde la raíz, crear una carpeta nueva para cada ejecución y usar las etapas existentes:
+El coordinador omite la evaluación técnica por defecto; `--evaluar-tecnicamente` la activa al iniciar una sesión nueva. Desde la raíz, crear una carpeta nueva para cada ejecución y usar las etapas existentes:
 
 ```powershell
 New-Item -ItemType Directory -Path salidas/ejecucion-001
 python mini_pai_interpretar.py "ruta/al/presupuesto.xlsx" --salida salidas/ejecucion-001/interpretacion.json
 python mini_pai_claves.py salidas/ejecucion-001/interpretacion.json --salida salidas/ejecucion-001/candidatos.json
-python mini_pai_seleccionar.py salidas/ejecucion-001/candidatos.json --salida salidas/ejecucion-001/evaluacion.json
-python mini_pai_revision.py salidas/ejecucion-001/evaluacion.json --salida salidas/ejecucion-001/opciones.md
+python mini_pai_revision.py salidas/ejecucion-001/candidatos.json --salida salidas/ejecucion-001/opciones.md
 ```
 
 Para la recuperación semántica, sustituir el comando `mini_pai_claves.py` por `mini_pai_buscar.py ... --indice ruta/al/indice.sqlite --salida ...`, usando la interpretación sin búsquedas previas. No ejecutar las dos rutas sobre la misma salida. La [guía de búsqueda](BUSQUEDA.md) explica creación y reutilización del índice.

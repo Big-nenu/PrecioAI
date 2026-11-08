@@ -26,15 +26,14 @@ La skill instalada ya incluye esta elección de ruta. No es necesario que el usu
 
 ## Búsqueda con el índice local
 
-Después de validar la interpretación, se puede usar la recuperación semántica conectada al selector existente. Estas órdenes sirven para cualquier agente con terminal; no requieren Cline ni un MCP.
+Después de validar la interpretación, se puede usar la recuperación semántica para presentar candidatos al usuario. Estas órdenes sirven para cualquier agente con terminal; no requieren Cline ni un MCP.
 
 ```powershell
 python mini_pai_buscar.py salidas/ejecucion-001/interpretacion.json --indice datos_privados/indices/catalogo-embeddinggemma.sqlite --salida salidas/ejecucion-001/candidatos.json
-python mini_pai_seleccionar.py salidas/ejecucion-001/candidatos.json --salida salidas/ejecucion-001/evaluacion.json
-python mini_pai_revision.py salidas/ejecucion-001/evaluacion.json --salida salidas/ejecucion-001/opciones.md
+python mini_pai_revision.py salidas/ejecucion-001/candidatos.json --salida salidas/ejecucion-001/opciones.md
 ```
 
-Usar la ruta real del índice que se desea reutilizar; una ruta nueva construye otro. La muestra ya dispone de uno: ver [INTEGRACION-INDICE.md](INTEGRACION-INDICE.md). El JSON de entrada debe estar sin búsquedas previas. No ejecutar también `mini_pai_claves.py` sobre esa misma salida; es la alternativa por palabras clave. El índice necesita Ollama con EmbeddingGemma 270m, mientras que la selección conserva Nemotron. Un candidato cercano nunca es una equivalencia aprobada. Si el usuario está ausente, generar revisión sin `--final`, conservar las dudas y no inventar elecciones.
+Usar la ruta real del índice que se desea reutilizar; una ruta nueva construye otro. La muestra ya dispone de uno: ver [INTEGRACION-INDICE.md](INTEGRACION-INDICE.md). El JSON de entrada debe estar sin búsquedas previas. No ejecutar también `mini_pai_claves.py` sobre esa misma salida; es la alternativa por palabras clave. El índice necesita Ollama con EmbeddingGemma 270m, la comparación técnica es opcional y conserva Nemotron. El coordinador solo la ejecuta con `--evaluar-tecnicamente`; los ejemplos históricos siguientes sí la ejecutaban. Un candidato cercano nunca es una equivalencia aprobada. Si el usuario está ausente, generar revisión sin `--final`, conservar las dudas y no inventar elecciones.
 
 ## Prueba anterior: muestra de veinte por bloques
 
