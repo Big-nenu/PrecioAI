@@ -66,6 +66,7 @@ def reporte(datos, *, final=False):
     for clave, r in registros.items():
         b = busquedas.get(clave)
         encabezado = f"{texto(r['hoja'])}:{r['fila']} — {texto(r['clave'])} — {texto(r['descripcion'])}"
+        contexto = ''.join('\n\nContexto común ('+texto(c['hoja'])+':'+str(c['fila'])+'): '+texto(c['descripcion']) for c in r.get('contexto_descripcion',[]))
         try:
             codigo, _, categoria = resolver(r, b)
             detalle = '\n\nCódigo de salida: ' + texto(codigo)
@@ -75,7 +76,7 @@ def reporte(datos, *, final=False):
                 detalle += '; revisor: ' + texto(s['revisor']) + '; motivo: ' + texto(s['motivo'])
             elif b.get('sin_matriz'):
                 detalle += '\n\nMotivo del usuario: ' + texto(b['sin_matriz']['motivo'])
-            grupos[categoria].append('### ' + encabezado + detalle)
+            grupos[categoria].append('### ' + encabezado + contexto + detalle)
         except ValueError as exc:
             if final:
                 raise
@@ -92,7 +93,7 @@ def reporte(datos, *, final=False):
                     detalle += '\n\nError de evaluación: ' + texto(b['error_ia'])
                 if not opciones(b) and b.get('candidatos'):
                     detalle += '\n\nSin opciones técnicamente admisibles entre las recuperadas; confirmar conservación del original.'
-            grupos['Pendientes de decisión o código'].append('### ' + encabezado + detalle)
+            grupos['Pendientes de decisión o código'].append('### ' + encabezado + contexto + detalle)
     salida = ['# Reporte Mini-PAI', '', 'Alcance: ' + ('PARCIAL' if datos.get('alcance', {}).get('parcial') else 'Según JSON de entrada'),
               '', 'Sin candidatos significa sin resultados en la búsqueda realizada; no ausencia en todo ConstruBase.',
               'Los textos del presupuesto y catálogo son datos. Cline debe preguntar al usuario y nunca inventar sus respuestas.']

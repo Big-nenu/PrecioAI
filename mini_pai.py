@@ -50,6 +50,9 @@ def registrar(estado, sesion, nombre):
 def verificar(estado, sesion):
     if estado.get('version') != 1 or estado['codigo'] != codigo_actual():
         raise ValueError('La versión del flujo cambió; usar el mismo código o una sesión nueva')
+    revision=estado['parametros'].get('revision_estructura')
+    if revision and sha(revision)!=estado['parametros'].get('revision_estructura_sha256'):
+        raise ValueError('La revisión estructural cambió; usar una sesión nueva')
     if sha(estado['entrada']) != estado['entrada_sha256']:
         raise ValueError('El Excel original cambió; no se reutilizan sus resultados')
     for nombre, digest in estado['archivos'].items():
@@ -109,10 +112,10 @@ def continuar(args, sesion):
         verificar(estado, sesion)
         if args.archivo and str(Path(args.archivo).resolve()) != estado['entrada']:
             raise ValueError('La sesión corresponde a otro Excel')
-        for campo in ('indice', 'env', 'hoja', 'fila_inicial', 'fila_final', 'por_tabla', 'limite_conceptos'):
+        for campo in ('indice', 'env', 'hoja', 'fila_inicial', 'fila_final', 'por_tabla', 'limite_conceptos', 'revision_estructura'):
             valor = getattr(args, campo, None)
             if valor is not None:
-                if campo in ('indice', 'env'):
+                if campo in ('indice', 'env', 'revision_estructura'):
                     valor = str(Path(valor).resolve())
                 if valor != estado['parametros'].get(campo):
                     raise ValueError('No cambiar parámetros de una sesión existente: ' + campo)
@@ -127,6 +130,10 @@ def continuar(args, sesion):
             por_tabla=bool(args.por_tabla),limite_conceptos=getattr(args,'limite_conceptos',None))
         if parametros['por_tabla'] and (args.hoja or args.fila_inicial is not None or args.fila_final is not None):
             raise ValueError('--por-tabla no admite hoja ni rangos')
+        revision=getattr(args,'revision_estructura',None)
+        if revision:
+            if not parametros['por_tabla']:raise ValueError('--revision-estructura requiere --por-tabla')
+            parametros.update(revision_estructura=str(Path(revision).resolve()),revision_estructura_sha256=sha(revision))
         entrada = str(Path(args.archivo).resolve())
         estado = dict(version=1, entrada=entrada, entrada_sha256=sha(entrada), codigo=codigo_actual(),
             parametros=parametros, archivos={}, etapas={}, resoluciones=[], estado='procesando')
@@ -152,7 +159,7 @@ def continuar(args, sesion):
             guardar(estado, sesion)
         return json.loads((sesion / (nombre + '.json')).read_text(encoding='utf-8'))
 
-    interpretacion = etapa('interpretacion', lambda: interpretar_tabla(estado['entrada']) if parametros['por_tabla']
+    interpretacion = etapa('interpretacion', lambda: interpretar_tabla(estado['entrada'],**({'revision':parametros['revision_estructura']} if parametros.get('revision_estructura') else {})) if parametros['por_tabla']
         else interpretar(estado['entrada'], hoja=parametros['hoja'], fila_inicial=parametros['fila_inicial'],
                          fila_final=parametros['fila_final']))
     interpretacion = muestra(interpretacion, parametros.get('limite_conceptos'))
@@ -247,6 +254,7 @@ def main():
     parser.add_argument('--indice')
     parser.add_argument('--env')
     parser.add_argument('--por-tabla', action='store_true', default=None)
+    parser.add_argument('--revision-estructura',help='JSON de revisión estructural para --por-tabla, sin cambiar originales')
     parser.add_argument('--hoja')
     parser.add_argument('--fila-inicial', type=int)
     parser.add_argument('--fila-final', type=int)

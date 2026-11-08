@@ -149,3 +149,20 @@ class FlujoMiniPaiTests(unittest.TestCase):
         with patch.object(flujo,'consultar_candidato',return_value=catalogo):
             self.assertEqual(flujo.ejecutar(self.args())['estado'],'terminado')
         self.assertEqual(self.evaluar.call_count,1)
+
+    def test_revision_estructural_se_transmite_y_se_protege_al_reanudar(self):
+        archivo=self.raiz/'estructura.json';archivo.write_text('{}',encoding='utf-8')
+        with patch.object(flujo,'interpretar_tabla',return_value=self.datos) as lector:
+            estado=flujo.ejecutar(self.args(archivo=str(self.original),indice=str(self.raiz/'indice.sqlite'),
+                por_tabla=True,revision_estructura=str(archivo)))
+        lector.assert_called_once_with(str(self.original.resolve()),revision=str(archivo.resolve()))
+        self.assertEqual(estado['parametros']['revision_estructura_sha256'],flujo.sha(archivo))
+        archivo.write_text('{"cambio":true}',encoding='utf-8')
+        with self.assertRaisesRegex(ValueError,'revisión estructural cambió'):
+            flujo.ejecutar(self.args())
+
+    def test_revision_sin_ruta_tabular_no_se_ignora(self):
+        archivo=self.raiz/'estructura.json';archivo.write_text('{}',encoding='utf-8')
+        with self.assertRaisesRegex(ValueError,'requiere --por-tabla'):
+            flujo.ejecutar(self.args(archivo=str(self.original),indice=str(self.raiz/'indice.sqlite'),revision_estructura=str(archivo)))
+        self.interpretar.assert_not_called()

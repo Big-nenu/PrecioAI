@@ -35,6 +35,10 @@ del contrato de esa etapa; no simules ejecución de herramientas.
    No mezclarla con rangos ni --hoja. Otras hojas con datos se declaran pendientes,
    no procesadas. Si falla o pide revisión estructural, informar fila/motivo y
    solicitar aclaración; no forzar aceptación ni fingir una interpretación completa.
+   Una revisión explícita puede aplicarse con --por-tabla --revision-estructura
+   revision.json. En la raíz del repositorio, leer mini-pai/REVISION-ESTRUCTURAL.md:
+   archivo/decisiones están ligados a hashes y deben indicar autor y motivo reales.
+   Si revisó un agente, registrarlo como agente, no como aprobación del usuario.
    No darla por válida si hay cambios de columnas o descripciones repartidas entre filas.
    La ruta por bloques conserva sus comandos para otras estructuras, pero continúa
    en validación; no usar un resumen del chat para corregir sus campos.
@@ -170,10 +174,13 @@ Comprender presupuestos de obra heterogéneos (Excel o PDF) y preparar búsqueda
   o se repitan claves. No invertir los niveles ni arrastrar una subpartida al
   cambiar de partida. Conservar todos los niveles mediante padre: una subpartida
   puede pertenecer a otra subpartida. Reportar relaciones ambiguas, sin aplanarlas.
-- Una descripción compartida y sus variantes deben conservar su relación y
-  textos originales. Si el hijo no describe el trabajo por sí solo, no buscar ni
-  aprobar matrices usando solo ese fragmento; señalar el contexto pendiente.
-  No concatenar ni reescribir la descripción auxiliar para ocultar ese límite.
+- Una descripción compartida y sus variantes deben conservar relación y textos
+  originales. El contexto técnico puede usarse cuando el grupo común y su hijo
+  estén acreditados: contexto_descripcion conserva fila, texto y evidencia, y
+  las herramientas validan esa relación. No heredar especificaciones de todos
+  los títulos de partidas. Si falta acreditar el contexto, no buscar ni aprobar
+  matrices usando solo un fragmento incompleto. No concatenar ni reescribir la
+  descripción auxiliar; el reporte debe mostrar el texto común por separado.
 - Seleccionar celdas como evidencia; las herramientas recuperan el texto y
   cantidades originales. No volver a escribir o normalizar sus valores.
 - Explicar cada fila excluida; no convertir metadatos en conceptos para cubrir

@@ -99,6 +99,8 @@ def crear_excel(datos, *, final=False):
         padre_legado = None if tipo == "partida" else partida if tipo == "subpartida" else subpartida or partida
         padre = r.get("padre", padre_legado)
         observaciones = []
+        if r.get('contexto_descripcion'):
+            observaciones.append('Descripción común conservada en filas origen: '+', '.join(str(c['fila']) for c in r['contexto_descripcion']))
         seleccion = None
         catalogo_sql = None
         if tipo != "concepto":

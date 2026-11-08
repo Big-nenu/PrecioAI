@@ -1,8 +1,10 @@
 """Extracción tabular: IA identifica columnas y grupos; Python recupera las celdas."""
 import json
+import hashlib
+from pathlib import Path
 import re
 
-from mini_pai_interpretar import inspeccionar_excel, materializar, validar
+from mini_pai_interpretar import inspeccionar_excel, materializar, validar, contextos_por_concepto
 from proveedor_ia import consultar_ia
 
 
@@ -71,8 +73,10 @@ def preparar_tabla(inspeccion, estructura):
 
 def materializar_tabla(inspeccion, estructura, plan, *, _en_curso=False):
     hoja, columnas, valores, medidos, repetidas = preparar_tabla(inspeccion, estructura)
-    if not isinstance(plan, dict) or set(plan) != {"filas", "dudas", "resumen_desde"}:
+    if not isinstance(plan, dict) or set(plan) not in ({"filas", "dudas", "resumen_desde"}, {"filas", "dudas", "resumen_desde", "contextos"}):
         raise ValueError("Plan de estructura inválido")
+    if 'contextos' in plan and not isinstance(plan['contextos'],dict):
+        raise ValueError('Los contextos compartidos deben ser un mapa de filas')
     resumen = plan["resumen_desde"]
     limite = None
     rotulo_resumen = None
@@ -129,6 +133,17 @@ def materializar_tabla(inspeccion, estructura, plan, *, _en_curso=False):
               and (not _en_curso or r['fila'] not in activos)]
     if vacios:
         raise ValueError(f"Agrupadores sin conceptos descendientes: {vacios}; revisar si son resumen o notas. No inventar conceptos para validarlos")
+    if not _en_curso:
+        registros = {r['fila']:r for r in resultado['registros']}
+        for numero,prueba in plan.get('contextos',{}).items():
+            if (not isinstance(numero,str) or not numero.isdecimal() or int(numero) not in registros
+                    or registros[int(numero)]['tipo']=='concepto' or not isinstance(prueba,dict)):
+                raise ValueError('Contexto compartido sin encabezado original')
+            registros[int(numero)]['descripcion_compartida']=dict(prueba)
+        contextos=contextos_por_concepto(resultado['registros'])
+        for r in resultado['registros']:
+            contexto=contextos.get((r['hoja'],r['fila']),[])
+            if contexto:r['contexto_descripcion']=contexto
     otras = [h["nombre"] for h in inspeccion["hojas"] if h["nombre"] != hoja["nombre"] and h["filas"]]
     if otras:
         resultado["dudas"] = list(resultado["dudas"])
@@ -262,8 +277,26 @@ def clasificar_tabla(inspeccion, estructura):
     return materializar_tabla(inspeccion, estructura, plan)
 
 
-def interpretar_tabla(ruta):
+def interpretar_tabla(ruta, *, revision=None):
+    entrada=Path(ruta)
+    digest=hashlib.sha256(entrada.read_bytes()).hexdigest() if revision is not None else None
     inspeccion = inspeccionar_excel(ruta, formatos=True)
+    if revision is not None:
+        archivo=Path(revision)
+        contenido=archivo.read_bytes()
+        datos=json.loads(contenido)
+        if (not isinstance(datos,dict) or set(datos)!={'version','archivo_sha256','estructura','plan','revisor','motivo'}
+                or type(datos['version']) is not int or datos['version']!=1
+                or any(not isinstance(datos[k],str) or not datos[k].strip() for k in ('revisor','motivo'))):
+            raise ValueError('Revisión estructural incompleta: requiere versión, origen, estructura, plan, revisor y motivo')
+        if datos['archivo_sha256']!=digest:
+            raise ValueError('La revisión estructural corresponde a otro archivo o el original cambió')
+        resultado=materializar_tabla(inspeccion,datos['estructura'],datos['plan'])
+        if hashlib.sha256(entrada.read_bytes()).hexdigest()!=digest:
+            raise ValueError('El archivo original cambió durante la revisión')
+        resultado['revision_estructura']=dict(revisor=datos['revisor'],motivo=datos['motivo'],archivo_sha256=digest,
+            revision_sha256=hashlib.sha256(contenido).hexdigest())
+        return resultado
     # shortcut: columnas estables y evidencia en las primeras 20 filas no vacías; ampliar tras validar otras tablas.
     muestra = [dict(nombre=h["nombre"], filas=[dict(fila=r["fila"], celdas={c: v[:100] for c, v in r["celdas"].items()})
                for r in h["filas"][:20]]) for h in inspeccion["hojas"] if h["filas"]]

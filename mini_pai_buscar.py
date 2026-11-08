@@ -7,7 +7,7 @@ import re
 import time
 
 from buscar_conceptos import buscar, conectar_sql
-from mini_pai_interpretar import validar_jerarquia
+from mini_pai_interpretar import validar_jerarquia, contextos_por_concepto, descripcion_tecnica
 from ranking_conceptos import normalizar, ordenar_candidatos
 
 
@@ -46,7 +46,10 @@ def validar_entrada(presupuesto, terminos):
     if any(not isinstance(k, str) or k not in conceptos or not isinstance(v, str) or not v.strip()
            for k, v in terminos.items()):
         raise ValueError("Los términos deben referir a conceptos existentes mediante hoja:fila")
-    validar_jerarquia(presupuesto["registros"])
+    contextos=contextos_por_concepto(presupuesto['registros'])
+    for r in presupuesto['registros']:
+        if r.get('contexto_descripcion',[]) != contextos.get((r['hoja'],r['fila']),[]):
+            raise ValueError('Contexto de descripción alterado o incompleto')
 
 
 def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False, consultas=None):
@@ -69,7 +72,7 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False, c
         if registro["tipo"] != "concepto":
             continue
         identificador = f"{registro['hoja']}:{registro['fila']}"
-        consulta = terminos.get(identificador, proponer_terminos(registro["descripcion"]))
+        consulta = terminos.get(identificador, proponer_terminos(descripcion_tecnica(registro)))
         plan = consultas.get(identificador)
         if plan is not None:
             consulta = plan[0] if plan else ""
@@ -124,8 +127,8 @@ def buscar_presupuesto(presupuesto, conexion, *, terminos=None, ampliar=False, c
             if identificador_sql is None:
                 raise ValueError("ConstruBase devolvió un candidato sin IdCodigo")
             unicos.setdefault(identificador_sql, candidato)
-        ordenados = ordenar_candidatos(registro["descripcion"] or consulta, list(unicos.values()))
-        principal = proponer_terminos(registro["descripcion"] or consulta).split()[:1]
+        ordenados = ordenar_candidatos(descripcion_tecnica(registro) or consulta, list(unicos.values()))
+        principal = proponer_terminos(descripcion_tecnica(registro) or consulta).split()[:1]
         for candidato in ordenados:
             inicio = proponer_terminos(candidato.get("DescripcionLarga") or candidato.get("Descripcion")).split()[:1]
             candidato["coincide_inicio_actividad"] = bool(principal and inicio == principal)
@@ -199,7 +202,7 @@ WHERE c.IdTipo=4 ORDER BY c.IdCodigo""")
     identidad = indice_local.firma(catalogo, modelo, digest)
     salida = deepcopy(presupuesto)
     conceptos = [r for r in salida['registros'] if r['tipo'] == 'concepto']
-    validos = [r for r in conceptos if r['descripcion'] and r['descripcion'].strip()]
+    validos = [r for r in conceptos if descripcion_tecnica(r).strip()]
     try:
         inicio = time.perf_counter()
         construccion = indice_local.construir(ruta, catalogo, modelo, digest, base=base)
@@ -209,7 +212,7 @@ WHERE c.IdTipo=4 ORDER BY c.IdCodigo""")
         resultados = {}
         if validos:
             qp, _ = prefijos(modelo)
-            preguntas = embeddings(base, modelo, [qp + r['descripcion'] for r in validos], lote=32)
+            preguntas = embeddings(base, modelo, [qp + descripcion_tecnica(r) for r in validos], lote=32)
             for r, puntos in zip(validos, similitudes(vectores, preguntas)):
                 orden = sorted(range(len(documentos)), key=lambda j: (
                     comparar_unidad(r['unidad'], documentos[j]['unidad']) != 'igual',

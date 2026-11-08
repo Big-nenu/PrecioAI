@@ -151,3 +151,12 @@ Se eliminaron el límite interno de dos niveles y la exigencia de rótulos en un
 Pasaron 180 pruebas. Hay cotejos correctos de E2, Estándar, PRESUPUESTO DE OBRA y Propuesta; los dos últimos planes se revalidaron sin nueva inferencia después del ajuste de columnas. original siop sigue sin árbol correcto y Obra civil se detiene ante descripción compartida ambigua. No se certifican estos dos casos ni se afirma comprensión universal. No se ejecutaron SQL ni comparaciones técnicas nuevas. Ver [GENERALIZACION.md](GENERALIZACION.md) para evidencia, tiempos, contratos y límites.
 
 Prioridad: revisión estructural y contexto de descripciones compartidas, después selección fiable de ruta y más formatos. MCP e interfaz siguen pendientes. La skill versionada se ajustó al contrato general; no hay reglas por archivo ni nuevas dependencias. PR #3 para revisión, sin fusionar.
+
+
+## Revisión estructural registrada y contexto — 7 de noviembre de 2026
+
+Los nuevos intentos de clasificación automática no resolvieron con fiabilidad ambos casos y se descartaron sus cambios de instrucciones. El perfil y clasificador del commit anterior se conservan. Se añadió --revision-estructura, común al intérprete y al coordinador: decisiones como datos, ligadas al hash del original, con revisor/motivo explícitos y todas las validaciones existentes. No hay reglas por nombre de archivo ni se simulan aprobaciones humanas.
+
+Codex revisó los originales: Obra civil conserva 11 conceptos/14 grupos y nueve textos comunes; original siop, 392 conceptos/51 grupos y sus niveles visuales, sin inventar claves faltantes. Ambos pasaron materialización, CLI, cotejos y borrador. Los cuatro planes anteriores se revalidaron sin nuevas inferencias. El contexto común se mantiene separado y verificado por origen; búsqueda y comparación pueden usarlo sin modificar auxiliares ni bajar criterios técnicos. Hubo búsqueda real de tres conceptos: cinco candidatos cada uno y cero selecciones, sin escritura SQL.
+
+Pasaron 193 pruebas. Evidencia privada: salidas/revision-estructural-20261107-213942/. Revisiones asistidas, no resoluciones automáticas de Nemotron. Ver [REVISION-ESTRUCTURAL.md](REVISION-ESTRUCTURAL.md) para contrato, comandos, alcance y límites. Falta presentar las aclaraciones estructurales de forma sencilla y validar equivalencias/pegado; MCP pendiente. PR #3 sin fusionar.

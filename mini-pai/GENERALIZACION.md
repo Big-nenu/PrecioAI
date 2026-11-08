@@ -1,5 +1,7 @@
 # Generalizar la interpretación de presupuestos
 
+**Actualización:** los dos casos pendientes se materializan mediante [revisión estructural asistida y contexto común](REVISION-ESTRUCTURAL.md). Las decisiones están registradas como datos, no como nuevas reglas del clasificador. El historial siguiente conserva las limitaciones observadas en el modo automático.
+
 La entrada no debe ajustarse a una plantilla del cliente. La plantilla fija corresponde al Excel de salida para Neodata. Este incremento elimina la limitación de dos niveles del modelo interno y permite identificar columnas con rótulos en varias filas o sin todos sus nombres.
 
 ## Contrato común

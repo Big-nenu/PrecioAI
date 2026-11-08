@@ -80,3 +80,14 @@ class BusquedaIndiceTests(unittest.TestCase):
         with patch('sys.argv', ['buscar','entrada.json','--salida',str(self.ruta),'--indice',str(self.ruta)]), patch('sys.stderr',new_callable=io.StringIO):
             with self.assertRaises(SystemExit):mini.main()
         self.assertFalse(self.ruta.exists())
+
+    def test_embedding_recibe_contexto_compartido_sin_cambiar_cliente(self):
+        from tests import test_contextos_compartidos as compartidos
+        self.entrada=compartidos.ContextosCompartidos().datos()
+        copia=deepcopy(self.entrada)
+        self.buscar()
+        textos=self.consultas.call_args.args[2]
+        self.assertIn('Suministro de panel de madera',textos[0])
+        self.assertIn('De 0.70 x 0.60 m',textos[0])
+        self.assertNotIn('panel de madera',textos[-1])
+        self.assertEqual(self.entrada,copia)

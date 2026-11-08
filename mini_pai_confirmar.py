@@ -12,6 +12,7 @@ from buscar_conceptos import conectar_sql
 from mini_pai_buscar import validar_entrada
 from ranking_conceptos import normalizar
 from numeros_tecnicos import numeros
+from mini_pai_interpretar import descripciones_cliente, descripcion_tecnica
 
 
 CAMPOS_SQL = ("IdCodigo", "Codigo", "DescripcionLarga", "IdUnidad", "IdTipo", "unidad_catalogo")
@@ -28,6 +29,8 @@ def validar_evaluacion_ia(registro, busqueda, evaluacion):
     vistos = set()
     def cita(texto, fuente):
         return isinstance(texto, str) and " ".join(normalizar(texto).split()) in " ".join(normalizar(fuente or "").split())
+    def cita_cliente(texto):
+        return any(cita(texto,fuente) for fuente in descripciones_cliente(registro))
     for item in evaluacion["candidatos"]:
         if (not isinstance(item, dict) or set(item) != {"IdCodigo", "dictamen", "motivo", "cliente", "catalogo"}
                 or type(item["IdCodigo"]) is not int or item["IdCodigo"] not in fuentes or item["IdCodigo"] in vistos
@@ -36,7 +39,7 @@ def validar_evaluacion_ia(registro, busqueda, evaluacion):
             raise ValueError("Dictamen con ID ajeno, duplicado o incompleto")
         vistos.add(item["IdCodigo"])
         c = fuentes[item["IdCodigo"]]
-        if (not (cita(item["cliente"], registro["descripcion"]) or cita(item["cliente"], registro["unidad"]))
+        if (not (cita_cliente(item["cliente"]) or cita(item["cliente"], registro["unidad"]))
                 or not (cita(item["catalogo"], c["DescripcionLarga"]) or cita(item["catalogo"], c.get("unidad_catalogo")))):
             raise ValueError("Cita de evidencia ajena al texto original")
         if item["dictamen"] == "incompatible" and (not item["cliente"].strip() or not item["catalogo"].strip()):
@@ -67,9 +70,9 @@ def validar_evaluacion_ia(registro, busqueda, evaluacion):
         if p["estado"] == "no_aplica":
             if p["aspecto"] in ("procedimiento", "alcance", "unidad"):
                 raise ValueError("No_aplica no puede ocultar un requisito esencial")
-            if not cita(p['cliente'], registro['descripcion']) or not cita(p['catalogo'], c['DescripcionLarga']):
+            if not cita_cliente(p['cliente']) or not cita(p['catalogo'], c['DescripcionLarga']):
                 raise ValueError('No_aplica contiene citas ajenas al concepto o candidato')
-            t = normalizar(registro["descripcion"])
+            t = normalizar(descripcion_tecnica(registro))
             if ((p["aspecto"] == "espesor" and "espesor" in t)
                     or (p["aspecto"] == "resistencia" and re.search(r"f\s*['’]?\s*c|kg\s*/\s*cm", t))
                     or (p["aspecto"] == "dimensiones" and re.search(r"\d\s*(?:cm|mm|m)\b", t))):
@@ -79,7 +82,7 @@ def validar_evaluacion_ia(registro, busqueda, evaluacion):
             destino = c["unidad_catalogo"] if p["aspecto"] == "unidad" else c["DescripcionLarga"]
             if (not isinstance(p["cliente"], str) or not p["cliente"].strip()
                     or not isinstance(p["catalogo"], str) or not p["catalogo"].strip()
-                    or not cita(p["cliente"], origen) or not cita(p["catalogo"], destino)):
+                    or not (cita(p["cliente"], origen) if p["aspecto"] == "unidad" else cita_cliente(p["cliente"])) or not cita(p["catalogo"], destino)):
                 raise ValueError("Comprobación sin citas verificables")
             if p["aspecto"] in ("dimensiones", "espesor", "resistencia"):
                 if numeros(p["cliente"]) != numeros(p["catalogo"]):
