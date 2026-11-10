@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini-PAI · Presupuestos</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#202c3c;background:#f3f6fa}*{box-sizing:border-box}body{margin:0}header{background:white;border-bottom:1px solid #e1e6ed;padding:19px max(24px,calc((100vw - 960px)/2));display:flex;align-items:center;justify-content:space-between}.brand{font-weight:800;font-size:21px;color:#234a83}.brand span{color:#34a18c}.status{font-size:12px;color:#65738a;background:#f2f5f9;border-radius:30px;padding:8px 12px}main{max-width:960px;margin:52px auto;padding:0 22px}.eyebrow{font-size:12px;font-weight:750;letter-spacing:.12em;color:#368a82;text-transform:uppercase}h1{font-size:clamp(29px,5vw,43px);letter-spacing:-.04em;margin:10px 0}p{line-height:1.55;color:#66758b}.panel{background:#fff;border:1px solid #e0e6ed;border-radius:18px;box-shadow:0 10px 34px #233f6010;padding:30px;margin-top:28px}.drop{border:2px dashed #bac9d9;border-radius:14px;text-align:center;padding:44px 20px;transition:.2s}.drop.drag{border-color:#368a82;background:#f1fbf8}.drop strong{display:block;font-size:19px;margin-bottom:7px}.drop .symbol{font-size:39px;margin-bottom:14px}button,.choose{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:12px 20px;background:#24558e;color:white;font-weight:700;display:inline-block;margin-top:12px}button:disabled{opacity:.45;cursor:not-allowed}button.secondary{background:#eef3f9;color:#234a83}input[type=file]{display:none}.hint{font-size:13px;margin-top:13px}.file{display:flex;align-items:center;justify-content:space-between;background:#f5f8fb;padding:14px;border-radius:10px;gap:12px;margin-top:15px;overflow-wrap:anywhere}.stepper{display:flex;gap:8px;margin-top:24px;flex-wrap:wrap}.step{padding:9px 12px;border-radius:9px;background:#e9eef5;color:#68778c;font-size:12px;font-weight:650}.step.active{background:#dceff0;color:#196b65}.progress{height:11px;background:#e7edf4;border-radius:20px;overflow:hidden;margin:22px 0 10px}.bar{height:100%;width:0;background:#3aa58e;transition:width .4s}.muted{color:#758398;font-size:13px}.hidden{display:none}.choice{display:block;border:1px solid #dce5ee;border-radius:11px;padding:15px;margin:10px 0;cursor:pointer}.choice:has(input:checked){border-color:#368a82;background:#f1faf8}.choice input{margin-right:10px}footer{max-width:960px;margin:30px auto;padding:0 22px;color:#8792a2;font-size:12px}a{color:#24558e}@media(max-width:560px){header{padding:16px 20px}main{margin:30px auto}.panel{padding:20px}.drop{padding:30px 15px}}
+</style>
+</head>
+<body>
+<header><div class="brand">Precio<span>AI</span> <small style="font-size:12px;color:#8996a6;font-weight:500">/ Mini-PAI</small></div><div class="status">Prototipo de interfaz · Sin conexión al motor</div></header>
+<main>
+<div class="eyebrow">Presupuestos de construcción</div>
+<h1>Tu presupuesto, listo para Neodata.</h1>
+<p>Sube el archivo de tu presupuesto. Mini-PAI lo analizará, te mostrará las decisiones técnicas necesarias y preparará el Excel de salida.</p>
+<div class="stepper" aria-label="Etapas"><div class="step active" id="s1">1. Subir archivo</div><div class="step" id="s2">2. Analizar</div><div class="step" id="s3">3. Revisar matrices</div><div class="step" id="s4">4. Descargar</div></div>
+<section class="panel" id="upload">
+<h2>Subir presupuesto</h2>
+<div class="drop" id="drop"><div class="symbol" aria-hidden="true">▤</div><strong>Arrastra aquí tu presupuesto</strong><p>O selecciona un archivo desde tu computadora</p><label class="choose" for="archivo">Seleccionar archivo</label><input id="archivo" type="file" accept=".xlsx,.xls,.pdf"><div class="hint">Excel (.xlsx, .xls) o PDF · Máximo 20 MB en este prototipo</div></div>
+<div class="file hidden" id="fileInfo"><span id="fileName"></span><button class="secondary" id="remove" type="button">Quitar</button></div>
+<button id="start" disabled>Analizar presupuesto</button>
+<p class="muted">La lectura de PDF y el procesamiento real se conectarán posteriormente. No se envía ningún archivo desde esta pantalla.</p>
+</section>
+<section class="panel hidden" id="preview">
+<h2>Vista del proceso</h2><p>Esta pantalla muestra cómo se verá el avance cuando conectemos Nemotron y ConstruBase.</p>
+<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div class="bar" id="bar"></div></div>
+<p id="progressText">Esperando conexión al motor de Mini-PAI.</p>
+<div class="file"><span id="previewFile"></span><span class="muted">Archivo seleccionado</span></div>
+<button class="secondary" id="back" type="button">Elegir otro archivo</button>
+</section>
+</main>
+<footer>Mini-PAI · Diseño inicial para uso en red local (LAN). La interpretación, la revisión de matrices y la descarga se habilitarán al conectar el backend.</footer>
+<script>
+const input=document.querySelector('#archivo'),drop=document.querySelector('#drop'),start=document.querySelector('#start'),info=document.querySelector('#fileInfo'),name=document.querySelector('#fileName');
+let selected=null;
+function selectFile(file){if(!file)return;const ext=file.name.split('.').pop().toLowerCase();if(!['xlsx','xls','pdf'].includes(ext)){alert('Selecciona un archivo Excel o PDF.');return}if(file.size>20*1024*1024){alert('El archivo supera 20 MB.');return}selected=file;name.textContent=file.name+' · '+(file.size/1024).toFixed(0)+' KB';info.classList.remove('hidden');start.disabled=false}
+input.addEventListener('change',()=>selectFile(input.files[0]));
+['dragenter','dragover'].forEach(event=>drop.addEventListener(event,e=>{e.preventDefault();drop.classList.add('drag')}));
+['dragleave','drop'].forEach(event=>drop.addEventListener(event,e=>{e.preventDefault();drop.classList.remove('drag')}));
+drop.addEventListener('drop',e=>selectFile(e.dataTransfer.files[0]));
+document.querySelector('#remove').addEventListener('click',()=>{selected=null;input.value='';info.classList.add('hidden');start.disabled=true});
+start.addEventListener('click',()=>{if(!selected)return;document.querySelector('#upload').classList.add('hidden');document.querySelector('#preview').classList.remove('hidden');document.querySelector('#s1').classList.remove('active');document.querySelector('#s2').classList.add('active');document.querySelector('#previewFile').textContent=selected.name});
+document.querySelector('#back').addEventListener('click',()=>{document.querySelector('#preview').classList.add('hidden');document.querySelector('#upload').classList.remove('hidden');document.querySelector('#s2').classList.remove('active');document.querySelector('#s1').classList.add('active')});
+</script></body></html>
