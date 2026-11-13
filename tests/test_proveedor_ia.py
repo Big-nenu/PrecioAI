@@ -17,6 +17,7 @@ class TestProveedorIA(unittest.TestCase):
             peticion=abrir.call_args.args[0];cuerpo=json.loads(peticion.data)
             self.assertEqual(peticion.full_url,"http://127.0.0.1:11434/api/chat")
             self.assertEqual(cuerpo["model"],"mismo-modelo")
+            self.assertEqual(cuerpo["keep_alive"], 0)
             self.assertEqual(cuerpo["options"]["num_ctx"],8192)
             self.assertFalse(cuerpo["think"])
             self.assertEqual(cuerpo["format"],{"type":"object"})

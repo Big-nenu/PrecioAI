@@ -21,7 +21,7 @@ def cargar_env(ruta=".env"):
 
 
 def configuracion():
-    cargar_env()
+    cargar_env(Path(__file__).resolve().with_name(".env"))
     proveedor = os.getenv("PRECIOAI_AI_PROVIDER", "ollama").lower()
     if proveedor not in ("ollama", "openai"):
         raise ValueError("PRECIOAI_AI_PROVIDER debe ser ollama u openai")
@@ -50,7 +50,7 @@ def consultar_ia(mensajes, *, esquema=None):
         pensamiento = os.getenv("PRECIOAI_OLLAMA_THINK", "").lower()
         if not 4096 <= contexto <= 32768 or not 256 <= prediccion <= 8192 or pensamiento not in ("", "true", "false"):
             raise ValueError("Configuración Ollama de contexto/generación inválida")
-        solicitud.update(options=dict(num_ctx=contexto, num_predict=prediccion, temperature=0))
+        solicitud.update(keep_alive=0, options=dict(num_ctx=contexto, num_predict=prediccion, temperature=0))
         if pensamiento:
             solicitud["think"] = pensamiento == "true"
         if esquema is not None:

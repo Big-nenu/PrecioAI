@@ -50,9 +50,11 @@ def escribir(hoja, valores):
     return fila
 
 
-def crear_excel(datos, *, final=False):
+def crear_excel(datos, *, final=False, solo_originales=False):
     """No usa SQL ni IA: exporta el JSON revisable del PR #3 sin modificarlo."""
     validar_entrada(datos, {})
+    if solo_originales and final:
+        raise ValueError("La exportación de originales es una prueba, incompatible con --final")
     indice(datos)  # Valida también las decisiones explícitas de conservar originales.
     if any(r["clave"] is not None and not isinstance(r["clave"], str) for r in datos["registros"]):
         raise ValueError("Las claves deben conservar el texto original")
@@ -62,7 +64,7 @@ def crear_excel(datos, *, final=False):
     codigos = {}
     descripciones_finales = {}
     origenes = {(r["hoja"], r["fila"]): r for r in datos["registros"]}
-    for b in datos.get("busquedas_construbase", []):
+    for b in ([] if solo_originales else datos.get("busquedas_construbase", [])):
         identidad = (b["hoja"], b["fila"])
         if identidad not in conceptos or identidad in busquedas:
             raise ValueError("Búsqueda duplicada o ajena a los conceptos")
@@ -160,7 +162,10 @@ def crear_excel(datos, *, final=False):
             codigo_salida = catalogo_sql["Codigo"] if catalogo_sql else None
             descripcion_salida = catalogo_sql["DescripcionLarga"] if catalogo_sql else None
             auxiliar = r["clave"]
-            if final or (b and b.get("sin_matriz")):
+            if solo_originales:
+                codigo_salida, descripcion_salida = r["clave"], r["descripcion"]
+                estado_revision = "Original conservado para prueba"
+            elif final or (b and b.get("sin_matriz")):
                 codigo_salida, descripcion_salida, categoria = resolver(r, b)
                 if not catalogo_sql:
                     estado_revision = categoria
@@ -180,6 +185,11 @@ def crear_excel(datos, *, final=False):
                        catalogo_sql["unidad_catalogo"] if catalogo_sql else r["unidad"], cantidad, 4]
             if catalogo_sql and len(catalogo_sql["Codigo"]) > 20:
                 observaciones.append("Código de ConstruBase supera 20 caracteres; no se recortó")
+        if any(isinstance(valores[c], str) and "\t" in valores[c] for c in (3, 4)):
+            for c in (3, 4):
+                if isinstance(valores[c], str):
+                    valores[c] = valores[c].replace("\t", " ")
+            observaciones.append("Tabuladores reemplazados por espacios en la descripción exportada")
         numero = escribir(catalogo, valores)
         # Seis columnas del manual; el nombre de un encabezado va en descripción auxiliar.
         escribir(copiar, [valores[0], valores[1], valores[2],
@@ -229,7 +239,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("presupuesto", help="JSON interpretado, opcionalmente con búsquedas")
     parser.add_argument("--salida", required=True, help="Archivo .xlsx nuevo")
-    parser.add_argument("--final", action="store_true", help="Exige decisiones resueltas y códigos; conserva cliente cuando no hay matriz")
+    modo = parser.add_mutually_exclusive_group()
+    modo.add_argument("--final", action="store_true", help="Exige decisiones resueltas y códigos; conserva cliente cuando no hay matriz")
+    modo.add_argument("--solo-originales", action="store_true", help="Genera un Excel de prueba con los conceptos del cliente, sin matrices")
     args = parser.parse_args()
     origen, destino = Path(args.presupuesto), Path(args.salida)
     if destino.suffix.lower() != ".xlsx":
@@ -241,8 +253,9 @@ def main():
     if informe.exists() or informe.is_symlink() or informe.resolve() == origen.resolve():
         parser.error("El reporte .md también debe ser nuevo y distinto de la entrada")
     datos = json.loads(origen.read_text(encoding="utf-8"))
-    contenido = reporte(datos, final=args.final)
-    libro = crear_excel(datos, final=args.final)
+    contenido = ("# Prueba de exportación Mini-PAI\n\nConceptos originales. ConstruBase no se consultó para esta exportación.\n"
+                 if args.solo_originales else reporte(datos, final=args.final))
+    libro = crear_excel(datos, final=args.final, solo_originales=args.solo_originales)
     confirmadas = libro["Revisión"]["D1"].value
     destino.parent.mkdir(parents=True, exist_ok=True)
     try:

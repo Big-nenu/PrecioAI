@@ -11,6 +11,21 @@ import mini_pai_interpretar as interpretar
 
 
 class PruebasTabla(unittest.TestCase):
+    def test_bloquea_misma_entrada_y_libera_al_terminar(self):
+        with tempfile.TemporaryDirectory() as carpeta, patch.object(tabla, "gettempdir", return_value=carpeta):
+            entrada = Path(carpeta) / "catalogo.xlsx"
+
+            def interpretar_primera(*args, **kwargs):
+                with self.assertRaisesRegex(ValueError, "Ya se está interpretando"):
+                    tabla.interpretar_tabla(entrada)
+                raise RuntimeError("fallo de prueba")
+
+            with patch.object(tabla, "_interpretar_tabla", side_effect=interpretar_primera):
+                with self.assertRaisesRegex(RuntimeError, "fallo de prueba"):
+                    tabla.interpretar_tabla(entrada)
+            with patch.object(tabla, "_interpretar_tabla", return_value={}):
+                self.assertEqual(tabla.interpretar_tabla(entrada), {})
+
     def ejemplo(self):
         origen = dict(archivo="sintetico.xlsx", hojas=[dict(nombre="Obra", filas=[
             dict(fila=1, celdas={"K1": "Portada"}),
@@ -50,6 +65,26 @@ class PruebasTabla(unittest.TestCase):
         self.assertTrue(temporal['alcance']['parcial'])
         with self.assertRaisesRegex(ValueError, 'Agrupadores sin conceptos'):
             tabla.materializar_tabla(origen, estructura, plan)
+
+    def test_corrige_hermanos_corroborados_por_el_resumen(self):
+        origen, estructura, plan = self.ejemplo()
+        filas = origen['hojas'][0]['filas']
+        for fila, clave, descripcion in [(3, 'A1', 'Grupo'), (5, 'A2', 'Sección'),
+                                         (8, 'A1', 'Grupo'), (9, 'A2', 'Sección')]:
+            if fila == 9:
+                filas.append(dict(fila=fila))
+            r = next(r for r in filas if r['fila'] == fila)
+            celdas = {f'C{fila}': clave, f'K{fila}': descripcion}
+            r.update(celdas=celdas, formatos={c: dict(estilo=7, negrita=True) for c in celdas})
+        wire = dict(dudas=[], filas={**plan['filas'],
+                    '7': dict(tipo='resumen', padre=None, motivo='Resumen final'),
+                    '8': dict(tipo='omitir', padre=None, motivo='Resumen final'),
+                    '9': dict(tipo='omitir', padre=None, motivo='Resumen final')})
+        with patch.object(tabla, 'consultar_ia', return_value=json.dumps(wire)) as ia:
+            salida = tabla.clasificar_tabla(origen, estructura)
+        ia.assert_called_once()
+        self.assertEqual([(r['fila'], r['padre']) for r in salida['registros']],
+                         [(3, None), (4, 3), (5, None), (6, 5)])
 
     def test_grupo_cerrado_vacio_no_se_admite_en_planificacion(self):
         origen, estructura, plan = self.ejemplo()

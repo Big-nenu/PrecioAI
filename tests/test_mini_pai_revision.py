@@ -25,6 +25,21 @@ class PruebasRevisionUsuario(unittest.TestCase):
         conexion.cursor.assert_not_called()
         return salida
 
+    def test_exportacion_de_prueba_con_originales_sin_busqueda(self):
+        datos = {"registros": self.datos["registros"]}
+        original = "Texto\tcon tabulador"
+        datos["registros"][2]["descripcion"] = original
+        libro = exportar.crear_excel(datos, solo_originales=True)
+        filas = list(libro["Catálogo"].values)
+        self.assertEqual(filas[1][1:3], (None, None))
+        self.assertEqual(filas[2][1:3], (None, None))
+        clave = datos["registros"][2]["clave"]
+        self.assertEqual(filas[3][1:3], (clave, clave))
+        self.assertEqual(filas[3][3:5], ("Texto con tabulador",) * 2)
+        self.assertEqual(libro["Copiar auxiliares"]["D4"].value, "Texto con tabulador")
+        self.assertEqual(datos["registros"][2]["descripcion"], original)
+        libro.close()
+
     def test_codigo_final_no_admite_descripciones_distintas_incluyendo_originales(self):
         for matriz in (False, True):
             for mismo_texto in (False, True):
